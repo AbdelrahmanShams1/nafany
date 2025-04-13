@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import Header from './header'; // Assuming you have a Header component
 
 // Service Cards Component
 const ServiceCard = ({ title, description, image, bgColor }) => {
@@ -29,69 +30,11 @@ const ServiceCard = ({ title, description, image, bgColor }) => {
 };
 
 // Header Component
-const Header = ({ isLoggedIn, onLogout, userData }) => {
-  const navigate = useNavigate();
 
-  return (
-    <motion.header 
-      className="bg-white shadow-md px-8 flex justify-between items-center"
-      initial={{ opacity: 0, y: -50 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="flex flex-col items-center gap-4">
-        {isLoggedIn && (
-          <span className="text-gray-700 font-medium">
-            مرحبًا، {userData?.name || 'عزيزي المستخدم'}
-          </span>
-        )}
-        <motion.button 
-          onClick={() => {
-             
-              onLogout();
-              navigate('/nafany/login');
-           
-          }}
-          className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {isLoggedIn ? 'تسجيل الخروج' : 'تسجيل الدخول'}
-        </motion.button>
-      </div>
-
-      <div className="flex items-center space-x-8">
-        <nav className="flex items-center space-x-9 font-black text-2xl">
-          <button 
-            onClick={() => navigate('/nafany/settings')} 
-            className="text-gray-700 hover:text-cyan-800 transition-colors"
-          >
-            الإعدادات
-          </button>
-          <button 
-            onClick={() => navigate('/nafany/contact')} 
-            className="text-gray-700 hover:text-cyan-800 transition-colors"
-          >
-            تواصل معنا
-          </button>
-          <button 
-            onClick={() => navigate('/nafany/complaints')} 
-            className="text-gray-700 hover:text-cyan-800 transition-colors"
-          >
-            الشكاوى والاقتراحات
-          </button>
-        </nav>
-        <img 
-          src="../../public/IMG-20250322-WA0070.jpg" 
-          alt="Logo" 
-          className="h-24 w-24 object-contain" 
-        />
-      </div>
-    </motion.header>
-  );
-};
 
 // Offers Card Component
+
+
 const OfferCard = ({ title, description, discount, isLoggedIn }) => {
   const navigate = useNavigate();
 
@@ -107,30 +50,34 @@ const OfferCard = ({ title, description, discount, isLoggedIn }) => {
 
   return (
     <motion.div 
-      className="bg-white rounded-xl shadow-lg p-6 overflow-hidden border-2 border-cyan-100"
+      className="bg-white rounded-xl shadow-lg p-4 sm:p-6 overflow-hidden border-2 border-cyan-100 w-full"
       whileHover={{ 
         scale: 1.03, 
         transition: { duration: 0.3 } 
       }}
+      dir="rtl"
     >
       <div className="flex flex-col items-start">
-        <h3 className="text-xl font-bold text-cyan-800 mb-3">{title}</h3>
-        <p className="text-gray-600 mb-4 flex-grow">{description}</p>
-        <div className="flex items-center justify-between w-full">
+        <h3 className="text-lg sm:text-xl font-bold text-cyan-800 mb-2 sm:mb-3">{title}</h3>
+        <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 flex-grow line-clamp-3">{description}</p>
+        
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-3 sm:gap-0">
           <span className="bg-cyan-100 text-cyan-800 px-3 py-1 rounded-full text-sm font-medium">
             خصم {discount}%
           </span>
           <button 
-            className="bg-cyan-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-cyan-700"
+            className="bg-cyan-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-lg text-sm hover:bg-cyan-700 w-full sm:w-auto text-center"
             onClick={handleOfferClick}
           >
-            {isLoggedIn ? 'استكشف العرض' : 'سجل الدخول للاستفادة'}
+            {isLoggedIn ? 'استكشف العرض' : 'سجل للاستفادة'}
           </button>
         </div>
       </div>
     </motion.div>
   );
 };
+
+
 
 // Home Page Component
 const HomePage = () => {
@@ -185,25 +132,25 @@ const HomePage = () => {
     {
       title: "خدمات فنية",
       description: "سباك، نجار، كهربائي، ميكانيكي، حداد، فني تكييفات، نقاش، ترزي",
-      image: "../../public/IMG-20250322-WA0070.jpg",
+      image: "/nafany/public/electric.jpg",
       bgColor: "bg-[#2f4156]"
     },
     {
       title: "خدمات صحية",
       description: "مستشفيات، عيادات، صيدليات، مراكز طبية",
-      image: "../../public/IMG-20250322-WA0070.jpg",
+      image: "/nafany/public/medicin.jpg",
       bgColor: "bg-[#567c8d]"
     },
     {
       title: "خدمات عامة",
       description: "سوبر ماركت، مطاعم، كافيهات، مولات، خدمات تجارية",
-      image: "../../public/IMG-20250322-WA0070.jpg",
+      image: "/nafany/public/download.png",
       bgColor: "bg-[#808080]"
     },
     {
       title: "خدمات أخرى",
       description: "عطار، جزار، فكهاني، خضري، محل ألبان، خدمات متفرقة",
-      image: "../../public/IMG-20250322-WA0070.jpg",
+      image: "/nafany/public/download (1).png",
       bgColor: "bg-[#62a2d3]"
     }
   ];
@@ -213,11 +160,6 @@ const HomePage = () => {
       title: "عرض الصيانة",
       description: "خصم خاص على خدمات الصيانة المنزلية الشاملة",
       discount: 20
-    },
-    {
-      title: "عرض النقل",
-      description: "تخفيضات مميزة على خدمات النقل والتوصيل السريع",
-      discount: 15
     },
     {
       title: "عرض التركيبات",
@@ -250,7 +192,7 @@ const HomePage = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          {false ? `مرحبًا بعودتك، ${userData?.name || 'عزيزي العميل'}` : 'مرحبًا بك في منصة  نفعني'}
+          {'مرحبًا بك في  نفعني'}
         </motion.h1>
 
         {/* Services Grid */}
