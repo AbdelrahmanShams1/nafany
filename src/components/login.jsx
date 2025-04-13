@@ -19,7 +19,7 @@ const Login = () => {
 
     try {
       if(emailOrPhone === "admin" && password === "admin1") {
-        navigate("/admin");
+        navigate("/nafany/admin");
       }
       // تحديد المجموعة بناءً على الدور
       const collectionName = role === "user" ? "users" : "serviceProviders";
@@ -68,9 +68,9 @@ const Login = () => {
       
       
        if (role === "user") {
-        navigate("/");
+        navigate("/nafany");
       } else if (role === "provider") {
-        navigate("/servicer_page");
+        navigate("/nafany/servicer_page");
       }
     
     } catch (error) {

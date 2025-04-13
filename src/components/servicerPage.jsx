@@ -76,7 +76,7 @@ const ProviderPortfolio = () => {
           setBookings(bookingsData);
         }
       } else {
-        navigate('/login');
+        navigate('/nafany/login');
       }
       setLoading(false);
     };
@@ -326,7 +326,7 @@ const ProviderPortfolio = () => {
   const handleStartChat = (clientId, clientName, clientEmail) => {
     const providerId = userData.id || userData.uid;
     
-    navigate(`/chat/${clientId}`, {
+    navigate(`/nafany/chat/${clientId}`, {
       state: {
         provider: {
           id: providerId,
@@ -565,7 +565,7 @@ const ProviderPortfolio = () => {
     localStorage.removeItem('currentUser');
     setIsLoggedIn(false);
     setUserData(null);
-    navigate('/');
+    navigate('/nafany');
   };
 
   const renderBookingsSection = () => {

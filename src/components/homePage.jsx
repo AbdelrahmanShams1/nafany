@@ -13,7 +13,7 @@ const ServiceCard = ({ title, description, image, bgColor }) => {
         scale: 1.05, 
         transition: { duration: 0.3 } 
       }}
-      onClick={() => navigate(`/services_jobs/${title}`)}
+      onClick={() => navigate(`/nafany/services_jobs/${title}`)}
     >
       <div className="flex flex-col items-center">
         <img 
@@ -49,7 +49,7 @@ const Header = ({ isLoggedIn, onLogout, userData }) => {
           onClick={() => {
              
               onLogout();
-              navigate('/login');
+              navigate('/nafany/login');
            
           }}
           className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600"
@@ -63,19 +63,19 @@ const Header = ({ isLoggedIn, onLogout, userData }) => {
       <div className="flex items-center space-x-8">
         <nav className="flex items-center space-x-9 font-black text-2xl">
           <button 
-            onClick={() => navigate('/settings')} 
+            onClick={() => navigate('/nafany/settings')} 
             className="text-gray-700 hover:text-cyan-800 transition-colors"
           >
             الإعدادات
           </button>
           <button 
-            onClick={() => navigate('/contact')} 
+            onClick={() => navigate('/nafany/contact')} 
             className="text-gray-700 hover:text-cyan-800 transition-colors"
           >
             تواصل معنا
           </button>
           <button 
-            onClick={() => navigate('/complaints')} 
+            onClick={() => navigate('/nafany/complaints')} 
             className="text-gray-700 hover:text-cyan-800 transition-colors"
           >
             الشكاوى والاقتراحات
@@ -98,10 +98,10 @@ const OfferCard = ({ title, description, discount, isLoggedIn }) => {
   const handleOfferClick = () => {
     if (!isLoggedIn) {
       alert('يجب تسجيل الدخول أولاً للاستفادة من العروض');
-      navigate('/login');
+      navigate('/nafany/login');
     } else {
       // تنفيذ إجراء العرض للمستخدم المسجل
-      navigate('/');
+      navigate('/nafany');
     }
   };
 
@@ -151,7 +151,7 @@ const HomePage = () => {
             
             // تحقق من الدور بعد تعيين بيانات المستخدم
             if (parsedUser.role === 'provider') {
-              navigate('/servicer_page');
+              navigate('/nafany/servicer_page');
             }
           }
         }
@@ -178,7 +178,7 @@ const HomePage = () => {
     localStorage.removeItem('currentUser');
     setIsLoggedIn(false);
     setUserData(null);
-    navigate('/');
+    navigate('/nafany');
   };
 
   const serviceCards = [

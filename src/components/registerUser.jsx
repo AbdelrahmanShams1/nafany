@@ -81,7 +81,7 @@ const RegisterUser = () => {
         ...formData,
       });
       alert("User registered successfully");
-      navigate("/login");
+      navigate("/nafany/login");
     } catch (error) {
       console.error("Error adding user: ", error);
     }

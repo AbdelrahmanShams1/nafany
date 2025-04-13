@@ -66,7 +66,7 @@ const ChatPage = () => {
       setLoading(true);
       const user = getUserData();
       if (!user) {
-        navigate('/login');
+        navigate('/nafany/login');
         return;
       }
 

@@ -8,9 +8,9 @@ const Header = ({ isLoggedIn, onLogout, userData }) => {
 
   const handleSettingsClick = () => {
     if (userData?.role === 'provider') {
-      navigate('/settings', { state: { fromProvider: true } });
+      navigate('/nafany/settings', { state: { fromProvider: true } });
     } else {
-      navigate('/settings');
+      navigate('/nafany/settings');
     }
   };
 
@@ -30,7 +30,7 @@ const Header = ({ isLoggedIn, onLogout, userData }) => {
         <motion.button 
           onClick={() => {
             onLogout();
-            navigate('/login');
+            navigate('/nafany/login');
           }}
           className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600"
           whileHover={{ scale: 1.05 }}
@@ -49,20 +49,20 @@ const Header = ({ isLoggedIn, onLogout, userData }) => {
             الإعدادات
           </button>
           <button 
-            onClick={() => navigate('/contact')} 
+            onClick={() => navigate('/nafany/contact')} 
             className="text-gray-700 hover:text-cyan-800 transition-colors"
           >
             تواصل معنا
           </button>
           <button 
-            onClick={() => navigate('/complaints')} 
+            onClick={() => navigate('/nafany/complaints')} 
             className="text-gray-700 hover:text-cyan-800 transition-colors"
           >
             الشكاوى والاقتراحات
           </button>
         </nav>
         <img 
-          src="/IMG-20250322-WA0070.jpg" 
+          src="/nafany/IMG-20250322-WA0070.jpg" 
           alt="Logo" 
           className="h-24 w-24 object-contain" 
         />

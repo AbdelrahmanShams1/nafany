@@ -25,21 +25,21 @@ const App = () => {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <>
-       <Route path="/check_sign" element={<CheckSignInOrSignUp/>} />
-        <Route path="/check_user" element={<CheckUserOrServicer />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/register_user" element={<RegisterUser />} />
-        <Route path="/services_jobs/:serviceType" element={<ServicesJobs />} />
-        <Route path="/servicer_page" element={<ServicerPage />} />
-        <Route path="/book_page/:providerId" element={<BookPage />} />
-        <Route path="/" element={<Home />} />
-        <Route path="/chat/:providerId" element={<ChatPage />} />
-        <Route path="/chats" element={<ChatsListPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/complaints" element={<ComplaintsPage />} />
-        <Route path="/admin" element={<Admin />} />
+       <Route path="/nafany/check_sign" element={<CheckSignInOrSignUp/>} />
+        <Route path="/nafany/check_user" element={<CheckUserOrServicer />} />
+        <Route path="/nafany/login" element={<Login />} />
+        <Route path="/nafany/register" element={<Register />} />
+        <Route path="/nafany/register_user" element={<RegisterUser />} />
+        <Route path="/nafany/services_jobs/:serviceType" element={<ServicesJobs />} />
+        <Route path="/nafany/servicer_page" element={<ServicerPage />} />
+        <Route path="/nafany/book_page/:providerId" element={<BookPage />} />
+        <Route path="/nafany/" element={<Home />} />
+        <Route path="/nafany/chat/:providerId" element={<ChatPage />} />
+        <Route path="/nafany/chats" element={<ChatsListPage />} />
+        <Route path="/nafany/settings" element={<SettingsPage />} />
+        <Route path="/nafany/contact" element={<Contact />} />
+        <Route path="/nafany/complaints" element={<ComplaintsPage />} />
+        <Route path="/nafany/admin" element={<Admin />} />
       </>
     )
   );

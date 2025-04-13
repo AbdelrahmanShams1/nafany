@@ -303,7 +303,7 @@ const handleStartChat = () => {
   const userId = userData.uid || userData.id;
   const providerId = providerData.id || providerData.uid;
 
-  navigate(`/chat/${providerId}`, {
+  navigate(`/nafany/chat/${providerId}`, {
     state: {
       provider: {
         id: providerId,

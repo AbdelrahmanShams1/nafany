@@ -50,7 +50,7 @@ const CheckUserOrServicer = () => {
           <div className="flex justify-center gap-6 mt-8">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
-                to="/login"
+                to="/nafany/login"
                 className="inline-block px-8 py-3 text-white rounded-lg bg-cyan-600 hover:bg-cyan-700 focus:bg-cyan-700 transition-colors duration-300 font-medium shadow-md cursor-pointer"
               >
                 نعم
@@ -59,7 +59,7 @@ const CheckUserOrServicer = () => {
 
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
-                to="/check_user"
+                to="/nafany/check_user"
                 className="inline-block px-8 py-3 border-2 border-cyan-600 text-cyan-600 rounded-lg hover:bg-cyan-50 transition-colors duration-300 font-medium cursor-pointer"
               >
                 لا

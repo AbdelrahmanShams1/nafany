@@ -89,7 +89,7 @@ const JobsPage = () => {
   }, [selectedProfession, selectedGovernorate, allJobs]);
 
   const handleDetailsClick = (provider) => {
-    navigate(`/book_page/${provider.id}`, { state: { provider } });
+    navigate(`/nafany/book_page/${provider.id}`, { state: { provider } });
   };
 
   // دالة لإنشاء عنوان الصفحة بناءً على حالة الفلتر
