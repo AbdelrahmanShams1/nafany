@@ -19,7 +19,7 @@ const Header = ({ isLoggedIn, onLogout, userData }) => {
       <div className="flex items-center justify-between w-full md:w-auto">
         {/* الشعار */}
         <img 
-          src="/nafany/public/IMG-20250322-WA0070.jpg" 
+          src="/nafany/IMG-20250322-WA0070.jpg" 
           alt="Logo" 
           className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 object-contain ml-2 md:ml-4" 
         />
