@@ -132,25 +132,25 @@ const HomePage = () => {
     {
       title: "خدمات فنية",
       description: "سباك، نجار، كهربائي، ميكانيكي، حداد، فني تكييفات، نقاش، ترزي",
-      image: "/nafany/public/electric.jpg",
+      image: "/nafany/electric.jpg",
       bgColor: "bg-[#2f4156]"
     },
     {
       title: "خدمات صحية",
       description: "مستشفيات، عيادات، صيدليات، مراكز طبية",
-      image: "/nafany/public/medicin.jpg",
+      image: "/nafany/medicin.jpg",
       bgColor: "bg-[#567c8d]"
     },
     {
       title: "خدمات عامة",
       description: "سوبر ماركت، مطاعم، كافيهات، مولات، خدمات تجارية",
-      image: "/nafany/public/download.png",
+      image: "/nafany/download.png",
       bgColor: "bg-[#808080]"
     },
     {
       title: "خدمات أخرى",
       description: "عطار، جزار، فكهاني، خضري، محل ألبان، خدمات متفرقة",
-      image: "/nafany/public/download (1).png",
+      image: "/nafany/download (1).png",
       bgColor: "bg-[#62a2d3]"
     }
   ];
