@@ -182,14 +182,14 @@ const Login = () => {
           
           <div className="flex flex-col gap-2">
             <Link 
-              to="/register_user" 
+              to="/nafany/register_user" 
               className="text-cyan-600 hover:text-cyan-800 font-medium text-sm"
             >
               إنشاء حساب مستخدم جديد
             </Link>
             
             <Link 
-              to="/register" 
+              to="/nafany/register" 
               className="text-cyan-600 hover:text-cyan-800 font-medium text-sm"
             >
               التسجيل كمقدم خدمة
