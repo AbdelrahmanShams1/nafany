@@ -152,10 +152,18 @@ const ProviderDetailsPage = () => {
     }
   
     try {
-      const formattedDate = selectedDate.toISOString().split('T')[0];
+      // تحويل التاريخ إلى تنسيق مناسب مع المنطقة الزمنية
+      const formattedDate = selectedDate.toLocaleDateString('ar-EG', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+  
+      // تنسيق التاريخ للتخزين في Firebase (بدون مشاكل المنطقة الزمنية)
+      const dateForFirestore = selectedDate.toISOString().split('T')[0];
       
       setIsCheckingAvailability(true);
-      const isAvailable = await checkAppointmentAvailability(formattedDate, selectedTime);
+      const isAvailable = await checkAppointmentAvailability(dateForFirestore, selectedTime);
       setIsCheckingAvailability(false);
       
       if (!isAvailable) {
@@ -172,7 +180,7 @@ const ProviderDetailsPage = () => {
         providerName: providerData.name,
         clientEmail: userData.email,
         clientName: userData.name,
-        bookingDate: formattedDate,
+        bookingDate: dateForFirestore,
         bookingTime: selectedTime,
         note: bookingNote,
         status: 'pending',
@@ -180,11 +188,11 @@ const ProviderDetailsPage = () => {
       };
   
       const bookingRef = await addDoc(collection(db, 'bookings'), bookingData);
-
+  
       await updateDoc(doc(db, 'serviceProviders', providerId), {
         bookings: arrayUnion(bookingRef.id)
       });
-
+  
       await updateDoc(doc(db, 'users', userData.uid), {
         bookings: arrayUnion(bookingRef.id)
       });

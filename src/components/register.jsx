@@ -24,24 +24,27 @@ const RegisterProvider = () => {
     address: "",
     ratings: {},
     chats: {},
-    works: [], 
+    works: [],
     worksCount: 0,
-    averageRating: 0, 
+    averageRating: 0,
     totalRatings: 0
   });
 
   const [previewFrontImage, setPreviewFrontImage] = useState(null);
   const [previewBackImage, setPreviewBackImage] = useState(null);
   const [previewProfileImage, setPreviewProfileImage] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [emailExists, setEmailExists] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const governorates =  [
+  const governorates = [
     "وسط البلد", "الزمالك", "المعادي", "مدينة نصر", "مصر الجديدة",
     "التجمع الخامس", "الرحاب", "مدينتي", "الشروق", "العبور",
     "6 أكتوبر", "الشيخ زايد", "حدائق الأهرام", "المقطم", "عين شمس",
     "المرج", "حلوان", "دار السلام", "السيدة زينب", "باب الشعرية",
     "شبرا", "الزاوية الحمراء", "حدائق القبة", "المطرية", "مدينة بدر",
     "البساتين", "التبين", "الواحة", "النزهة", "الهرم"
-];
+  ];
 
   const serviceCategories = {
     "خدمات فنية": [
@@ -74,6 +77,36 @@ const RegisterProvider = () => {
     }));
   }, []);
 
+  const validateForm = () => {
+    let newErrors = {};
+
+    if (!formData.name.trim()) newErrors.name = "الاسم مطلوب";
+    if (!formData.email.trim()) {
+      newErrors.email = "البريد الإلكتروني مطلوب";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "البريد الإلكتروني غير صالح";
+    }
+    if (!formData.password.trim()) {
+      newErrors.password = "كلمة المرور مطلوبة";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "يجب أن تكون كلمة المرور 6 أحرف على الأقل";
+    }
+    if (!formData.nationalId.trim()) newErrors.nationalId = "الرقم القومي مطلوب";
+    if (!formData.idFrontImage) newErrors.idFrontImage = "صورة البطاقة الأمامية مطلوبة";
+    if (!formData.idBackImage) newErrors.idBackImage = "صورة البطاقة الخلفية مطلوبة";
+    if (!formData.phone.trim()) newErrors.phone = "رقم الهاتف مطلوب";
+    if (!formData.address.trim()) newErrors.address = "العنوان مطلوب";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const checkEmailExists = async (email) => {
+    const q = query(collection(db, "serviceProviders"), where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty;
+  };
+
   const handleImageUpload = (file, field) => {
     if (!file) return;
 
@@ -87,8 +120,10 @@ const RegisterProvider = () => {
 
       if (field === "idFrontImage") {
         setPreviewFrontImage(base64Image);
+        setErrors({...errors, idFrontImage: ""});
       } else if (field === "idBackImage") {
         setPreviewBackImage(base64Image);
+        setErrors({...errors, idBackImage: ""});
       } else if (field === "profileImage") {
         setPreviewProfileImage(base64Image);
       }
@@ -108,18 +143,29 @@ const RegisterProvider = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    if (!formData.idFrontImage || !formData.idBackImage) {
-      alert("يرجى رفع صور البطاقة قبل التسجيل.");
+    setIsSubmitting(true);
+    
+    if (!validateForm()) {
+      setIsSubmitting(false);
       return;
     }
-  
+    
     try {
-      const q = query(collection(db, "serviceProviders"), where("email", "==", formData.email));
-      const querySnapshot = await getDocs(q);
+      const emailAlreadyExists = await checkEmailExists(formData.email);
+      
+      if (emailAlreadyExists) {
+        setEmailExists(true);
+        setIsSubmitting(false);
+        return;
+      }
   
-      if (!querySnapshot.empty) {
-        alert("البريد الإلكتروني مسجل بالفعل.");
+      if (!formData.idFrontImage || !formData.idBackImage) {
+        setErrors({
+          ...errors,
+          idFrontImage: !formData.idFrontImage ? "صورة البطاقة الأمامية مطلوبة" : "",
+          idBackImage: !formData.idBackImage ? "صورة البطاقة الخلفية مطلوبة" : ""
+        });
+        setIsSubmitting(false);
         return;
       }
   
@@ -141,9 +187,10 @@ const RegisterProvider = () => {
         createdAt: new Date(),
         ratings: {},
         chats: {},
-        works: [], // مصفوفة فارغة للأعمال
-       
-       
+        works: [],
+        worksCount: 0,
+        averageRating: 0,
+        totalRatings: 0
       };
 
       if (formData.category === "خدمات فنية") {
@@ -157,7 +204,58 @@ const RegisterProvider = () => {
     } catch (e) {
       console.error("حدث خطأ أثناء التسجيل: ", e);
       alert("حدث خطأ أثناء التسجيل، يرجى المحاولة مرة أخرى");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: "" });
+    }
+    
+    if (name === "email" && emailExists) {
+      setEmailExists(false);
+    }
+  };
+
+  const renderInputField = (key, index) => {
+    const labels = {
+      name: "الاسم",
+      email: "البريد الإلكتروني",
+      password: "كلمة المرور",
+      nationalId: "الرقم القومي",
+      phone: "رقم الهاتف",
+      address: "العنوان"
+    };
+
+    const types = {
+      password: "password",
+      email: "email",
+      nationalId: "number",
+      phone: "tel",
+      default: "text"
+    };
+
+    return (
+      <motion.div key={index} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: index * 0.2 }}>
+        <label className="block text-gray-700 font-medium text-sm mb-2">{labels[key]}</label>
+        <input
+          type={types[key] || types.default}
+          name={key}
+          placeholder={`أدخل ${labels[key]}`}
+          className={`w-full border ${errors[key] ? 'border-red-500' : 'border-gray-300'} rounded-lg p-3 focus:ring-2 focus:ring-cyan-500`}
+          required
+          value={formData[key]}
+          onChange={handleChange}
+        />
+        {errors[key] && <p className="text-red-500 text-sm mt-1">{errors[key]}</p>}
+        {key === "email" && emailExists && <p className="text-red-500 text-sm mt-1">البريد الإلكتروني مستخدم بالفعل</p>}
+      </motion.div>
+    );
   };
 
   return (
@@ -184,27 +282,9 @@ const RegisterProvider = () => {
         </motion.h2>
 
         <motion.form onSubmit={handleSubmit} className="space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-          {["name", "email", "password", "nationalId"].map((key, index) => (
-            <motion.div key={index} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: index * 0.2 }}>
-              <label className="block text-gray-700 font-medium text-sm mb-2">
-                {key === "name" ? "الاسم" : 
-                 key === "email" ? "البريد الإلكتروني" : 
-                 key === "password" ? "كلمة المرور" : 
-                 "الرقم القومي"}
-              </label>
-              <input
-                type={key === "password" ? "password" : "text"}
-                placeholder={`أدخل ${key === "name" ? "الاسم" : 
-                            key === "email" ? "البريد الإلكتروني" : 
-                            key === "password" ? "كلمة المرور" : 
-                            "الرقم القومي"}`}
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-                required
-                value={formData[key]}
-                onChange={(e) => setFormData((prev) => ({ ...prev, [key]: e.target.value }))}
-              />
-            </motion.div>
-          ))}
+          {["name", "email", "password", "nationalId", "phone", "address"].map((key, index) => 
+            renderInputField(key, index)
+          )}
 
           <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
             <label className="block text-gray-700 font-medium text-sm mb-2">التصنيف</label>
@@ -248,31 +328,7 @@ const RegisterProvider = () => {
             </motion.div>
           )}
 
-          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
-            <label className="block text-gray-700 font-medium text-sm mb-2">العنوان</label>
-            <input
-              type="text"
-              placeholder="أدخل العنوان بالتفصيل"
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-              required
-              value={formData.address}
-              onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-            />
-          </motion.div>
-
-          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.6 }}>
-            <label className="block text-gray-700 font-medium text-sm mb-2">رقم الهاتف</label>
-            <input
-              type="tel"
-              placeholder="أدخل رقم الهاتف"
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-              required
-              value={formData.phone}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-            />
-          </motion.div>
-
-          <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.7 }}>
+          <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
             <label className="block text-gray-700 font-medium text-sm mb-2">المحافظة</label>
             <select
               className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
@@ -286,7 +342,7 @@ const RegisterProvider = () => {
             </select>
           </motion.div>
 
-          <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.8 }}>
+          <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.6 }}>
             <label className="block text-gray-700 font-medium text-sm mb-2">رسوم الاشتراك</label>
             <select
               className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
@@ -300,21 +356,22 @@ const RegisterProvider = () => {
             </select>
           </motion.div>
 
-          <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>
+          <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
             <label className="block text-gray-700 font-medium text-sm">صور البطاقة</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { field: "idFrontImage", label: "صورة البطاقة من الأمام", preview: previewFrontImage },
-                { field: "idBackImage", label: "صورة البطاقة من الخلف", preview: previewBackImage },
+                { field: "idFrontImage", label: "صورة البطاقة من الأمام", preview: previewFrontImage, error: errors.idFrontImage },
+                { field: "idBackImage", label: "صورة البطاقة من الخلف", preview: previewBackImage, error: errors.idBackImage },
               ].map((item, index) => (
                 <motion.div key={index} className="space-y-2" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: index * 0.3 }}>
-                  <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-cyan-400 transition-colors">
+                  <div className={`bg-gray-50 border-2 border-dashed ${item.error ? 'border-red-500' : 'border-gray-300'} rounded-lg p-4 text-center hover:border-cyan-400 transition-colors`}>
                     <input
                       type="file"
                       className="hidden"
                       id={`id-image-${index}`}
                       required
                       onChange={(e) => handleImageUpload(e.target.files[0], item.field)}
+                      accept="image/*"
                     />
                     <label htmlFor={`id-image-${index}`} className="cursor-pointer">
                       <div className="text-gray-500 flex flex-col items-center">
@@ -332,12 +389,13 @@ const RegisterProvider = () => {
                       </div>
                     </label>
                   </div>
+                  {item.error && <p className="text-red-500 text-sm">{item.error}</p>}
                 </motion.div>
               ))}
             </div>
           </motion.div>
 
-          <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.0 }}>
+          <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
             <label className="block text-gray-700 font-medium text-sm">الصورة الشخصية</label>
             <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-cyan-400 transition-colors">
               <input
@@ -345,6 +403,7 @@ const RegisterProvider = () => {
                 className="hidden"
                 id="profile-image"
                 onChange={(e) => handleImageUpload(e.target.files[0], "profileImage")}
+                accept="image/*"
               />
               <label htmlFor="profile-image" className="cursor-pointer">
                 <div className="text-gray-500 flex flex-col items-center">
@@ -364,7 +423,7 @@ const RegisterProvider = () => {
             </div>
           </motion.div>
 
-          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 1.1 }}>
+          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.9 }}>
             <label className="block text-gray-700 font-medium text-sm mb-2">تعريف شخصي</label>
             <textarea
               placeholder="أدخل تعريفاً شخصياً مختصراً عنك وخبراتك"
@@ -386,11 +445,12 @@ const RegisterProvider = () => {
             </motion.button>
             <motion.button
               type="submit"
-              className="py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-medium shadow-md flex items-center justify-center"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
+              className={`py-3 ${isSubmitting ? 'bg-cyan-400' : 'bg-cyan-600 hover:bg-cyan-700'} text-white rounded-lg font-medium shadow-md flex items-center justify-center`}
+              whileHover={{ scale: isSubmitting ? 1 : 1.03 }}
+              whileTap={{ scale: isSubmitting ? 1 : 0.97 }}
+              disabled={isSubmitting}
             >
-              تسجيل
+              {isSubmitting ? 'جاري التسجيل...' : 'تسجيل'}
             </motion.button>
           </motion.div>
         </motion.form>
