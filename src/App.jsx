@@ -19,6 +19,7 @@ import SettingsPage from "./components/SettingsPage";
 import Contact from "./components/contact";
 import ComplaintsPage  from "./components/ComplaintsPage";
 import Admin  from "./components/adminDashBoard";
+import ServiceCategoriesPage from "./components/serviceCategories";
 
 
 const App = () => {
@@ -30,7 +31,7 @@ const App = () => {
         <Route path="/nafany/login" element={<Login />} />
         <Route path="/nafany/register" element={<Register />} />
         <Route path="/nafany/register_user" element={<RegisterUser />} />
-        <Route path="/nafany/services_jobs/:serviceType" element={<ServicesJobs />} />
+        <Route path="/nafany/services_jobs/:serviceType/:professionType" element={<ServicesJobs />} />
         <Route path="/nafany/servicer_page" element={<ServicerPage />} />
         <Route path="/nafany/book_page/:providerId" element={<BookPage />} />
         <Route path="/nafany/" element={<Home />} />
@@ -40,6 +41,7 @@ const App = () => {
         <Route path="/nafany/contact" element={<Contact />} />
         <Route path="/nafany/complaints" element={<ComplaintsPage />} />
         <Route path="/nafany/admin" element={<Admin />} />
+        <Route path="/nafany/service_categories/:serviceType" element={<ServiceCategoriesPage />} />
       </>
     )
   );

@@ -14,7 +14,7 @@ const ServiceCard = ({ title, description, image, bgColor }) => {
         scale: 1.05, 
         transition: { duration: 0.3 } 
       }}
-      onClick={() => navigate(`/nafany/services_jobs/${title}`)}
+      onClick={() => navigate(`/nafany/service_categories/${title}`)}
     >
       <div className="flex flex-col items-center">
         <img 

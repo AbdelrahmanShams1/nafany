@@ -5,7 +5,7 @@ import { db } from '../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const JobsPage = () => {
-  const { serviceType } = useParams();
+  const { serviceType, professionType } = useParams(); // استخراج نوع المهنة المحددة
   const navigate = useNavigate();
   const [allJobs, setAllJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
@@ -33,9 +33,10 @@ const JobsPage = () => {
         // جلب جميع مقدمي الخدمة في هذا التصنيف
         const q = query(
           collection(db, 'serviceProviders'),
-          where('category', '==', serviceType)
+          where('category', '==', serviceType),
+          where('profession', '==', professionType) // إضافة فلتر للمهنة
         );
-        
+
         const querySnapshot = await getDocs(q);
         const jobsData = [];
         const professions = new Set(['الكل']);
@@ -71,7 +72,7 @@ const JobsPage = () => {
     };
 
     fetchJobs();
-  }, [serviceType]);
+  },  [serviceType, professionType]);
 
   useEffect(() => {
     // تطبيق الفلتر عند تغيير المهنة أو المحافظة
@@ -94,13 +95,9 @@ const JobsPage = () => {
 
   // دالة لإنشاء عنوان الصفحة بناءً على حالة الفلتر
   const getPageTitle = () => {
-    let title = serviceType;
+    let title = `${professionType} - ${serviceType}`;
     
-    if (selectedProfession !== 'الكل' && selectedGovernorate !== 'الكل') {
-      title += ` (${selectedProfession} في ${selectedGovernorate})`;
-    } else if (selectedProfession !== 'الكل') {
-      title += ` (${selectedProfession})`;
-    } else if (selectedGovernorate !== 'الكل') {
+    if (selectedGovernorate !== 'الكل') {
       title += ` في ${selectedGovernorate}`;
     } else {
       title += ' في جميع المناطق السكنية';
@@ -154,22 +151,7 @@ const JobsPage = () => {
           transition={{ delay: 0.5 }}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                تصفية حسب المهنة:
-              </label>
-              <select
-                value={selectedProfession}
-                onChange={(e) => setSelectedProfession(e.target.value)}
-                className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-cyan-500"
-              >
-                {professionsList.map((profession, index) => (
-                  <option key={`prof-${index}`} value={profession}>
-                    {profession}
-                  </option>
-                ))}
-              </select>
-            </div>
+          
             
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
