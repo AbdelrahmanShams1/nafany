@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { db } from "../firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, getDoc } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   // حالات الصفحة
   const [activeTab, setActiveTab] = useState("users");
   const [users, setUsers] = useState([]);
@@ -775,18 +777,33 @@ const renderEditModal = () => (
       transition={{ duration: 0.5 }}
     >
       <h1 className="text-3xl font-bold mb-6 text-right">لوحة تحكم المشرف</h1>
+      <motion.button 
+                  onClick={() => {
+                    
+                    navigate('/nafany/login');
+                  }}
+                  className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 text-base"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {true ? 'تسجيل الخروج' : 'تسجيل الدخول'}
+                </motion.button>
       
       {renderTabs()}
       
       {isLoading ? (
         renderLoading()
       ) : (
+        <>
+       
         <div className="bg-white shadow-md rounded-lg p-4">
-          {activeTab === "users" && renderUsers()}
-          {activeTab === "providers" && renderProviders()}
-          {activeTab === "complaints" && renderFeedbacks()}
-          {activeTab === "reviews" && renderReviews()}
-        </div>
+           
+        {activeTab === "users" && renderUsers()}
+        {activeTab === "providers" && renderProviders()}
+        {activeTab === "complaints" && renderFeedbacks()}
+        {activeTab === "reviews" && renderReviews()}
+      </div></>
+        
       )}
       
       {renderEditModal()}

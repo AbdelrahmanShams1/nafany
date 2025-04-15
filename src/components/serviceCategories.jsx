@@ -30,19 +30,17 @@ const ServiceCategoriesPage = () => {
       { name: "سوبر ماركت", icon: "🛒", color: "bg-orange-500" },
       { name: "مطعم", icon: "🍽️", color: "bg-red-600" },
       { name: "كافيه", icon: "☕", color: "bg-yellow-900" },
-      { name: "خدمات توصيل", icon: "🛵", color: "bg-blue-600" },
-      { name: "خدمات نظافة", icon: "🧹", color: "bg-green-600" },
-      { name: "خدمات حراسة", icon: "👮", color: "bg-gray-800" }
+      { name: "مولات", icon: "🏬", color: "bg-purple-700" }
+ 
     ],
-    "خدمات أخرى": [
-      { name: "عطار", icon: "🌿", color: "bg-green-700" },
-      { name: "جزار", icon: "🥩", color: "bg-red-800" },
-      { name: "فكهاني", icon: "🍎", color: "bg-red-500" },
-      { name: "خضري", icon: "🥬", color: "bg-green-500" },
-      { name: "محل ألبان", icon: "🥛", color: "bg-white text-gray-800" },
-      { name: "خياط", icon: "👕", color: "bg-blue-300" },
-      { name: "مصور", icon: "📸", color: "bg-gray-600" }
-    ]
+   "خدمات أخرى": [
+  { name: "عطار", icon: "🌿", color: "bg-green-700" },
+  { name: "جزار", icon: "🥩", color: "bg-red-800" },
+  { name: "فكهاني", icon: "🍎", color: "bg-red-500" },
+  { name: "خضري", icon: "🥬", color: "bg-green-500" },
+  { name: "محل ألبان", icon: "🥛", color: "bg-white text-gray-800" },
+ 
+]
   };
 
   // الحصول على قائمة الخدمات المناسبة للنوع المحدد
