@@ -125,6 +125,7 @@ const RegisterUser = () => {
             { label: "الاسم", name: "name" },
             { label: "عنوان البريد", name: "email" },
             { label: "كلمة المرور", name: "password", type: "password" },
+            { label: "رقم الهاتف", name: "phoneNumber" },
           ].map(({ label, name, type = "text" }, index) => (
             <motion.div key={index} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: index * 0.2 }}>
               <label className="block text-gray-700 font-medium text-sm mb-2">{label}</label>

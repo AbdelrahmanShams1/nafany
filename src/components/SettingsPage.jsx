@@ -15,7 +15,7 @@ const SettingsPage = () => {
     email: "",
     password: "",
     governorate: "",
-    phone: "",
+    phoneNumber: "",
     role: "" // 'user' أو 'provider'
   });
 
@@ -63,6 +63,7 @@ const SettingsPage = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+        
         const storedUser = localStorage.getItem('currentUser');
         if (!storedUser) {
           navigate('/nafany/login');
@@ -70,10 +71,19 @@ const SettingsPage = () => {
         }
   
         const currentUser = JSON.parse(storedUser);
+        let docId;
         
         // تحديد اسم المجموعة بناءً على الدور
         const collectionName = currentUser.role === 'provider' ? 'serviceProviders' : 'users';
-        const docId = currentUser.email.split('@')[0]; // أو استخدام currentUser.uid إذا كان محفوظاً
+      
+        if(collectionName==='serviceProviders'){
+           docId = currentUser.email
+          
+        }
+        else{
+           docId = currentUser.email.split('@')[0]; // أو استخدام currentUser.uid إذا كان محفوظاً
+        }
+       
         
         const userDocRef = doc(db, collectionName, docId);
         const userDocSnap = await getDoc(userDocRef);
@@ -87,7 +97,7 @@ const SettingsPage = () => {
             email: data.email || "",
             password: "",
             governorate: data.governorate || "",
-            phone: data.phone || "",
+            phone: data.phone || data.phoneNumber ||"",
             role: currentUser.role // استخدام الدور من currentUser
           });
   

@@ -411,8 +411,8 @@ const ProviderPortfolio = () => {
           <h3 className="text-lg font-semibold text-cyan-700 mb-3">المحادثات الحديثة</h3>
           {chats.length > 0 ? (
             <div className="space-y-3 max-h-[300px] overflow-y-auto">
-              {chats.slice(0, 3).map((chat) => {
-                const clientId = chat.participants[0] === userData.id ? chat.participants[1] : chat.participants[0];
+              {chats.map((chat) => {
+                const clientId = chat.participants[0] === userData.id.split('@')[0] ? chat.participants[1] : chat.participants[0];
                 const clientName = chat.participantsNames[0] === userData.name ? chat.participantsNames[1] : chat.participantsNames[0];
                 
                 return (
