@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import Header from './header'; // Assuming you have a Header component
+import Header from './Header'; 
+import { db } from '../firebase'; 
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  orderBy 
+} from 'firebase/firestore';
+import { FaUserCircle, FaArrowRight } from 'react-icons/fa'; 
 
 // Service Cards Component
 const ServiceCard = ({ title, description, image, bgColor }) => {
@@ -29,12 +38,7 @@ const ServiceCard = ({ title, description, image, bgColor }) => {
   );
 };
 
-// Header Component
-
-
 // Offers Card Component
-
-
 const OfferCard = ({ title, description, discount, isLoggedIn }) => {
   const navigate = useNavigate();
 
@@ -77,17 +81,16 @@ const OfferCard = ({ title, description, discount, isLoggedIn }) => {
   );
 };
 
-
-
 // Home Page Component
 const HomePage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [chats, setChats] = useState([]); // State for storing chats
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkLoginStatus = () => {
+    const checkLoginStatus = async () => {
       try {
         const storedUser = localStorage.getItem('currentUser');
         if (storedUser && storedUser !== '""') {
@@ -99,6 +102,11 @@ const HomePage = () => {
             // تحقق من الدور بعد تعيين بيانات المستخدم
             if (parsedUser.role === 'provider') {
               navigate('/nafany/servicer_page');
+            } else {
+              // Fetch chats for regular users
+              const userChats = await fetchUserChats(parsedUser.id || parsedUser.uid);
+              setChats(userChats);
+              console.log('User chats:', userChats);
             }
           }
         }
@@ -119,7 +127,50 @@ const HomePage = () => {
   
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [navigate]); // تأكد من إضافة navigate إلى dependencies
+  }, [navigate]);
+
+  // Function to fetch user's chats
+  const fetchUserChats = async (userId) => {
+    try {
+      const chatsQuery = query(
+        collection(db, 'chats'),
+        where('participants', 'array-contains', userId),
+        orderBy('lastMessageTime', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(chatsQuery);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        lastMessageTime: doc.data().lastMessageTime?.toDate?.() || new Date()
+      }));
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+      return [];
+    }
+  };
+
+  // Function to handle starting chat with a provider
+  const handleStartChat = (providerId, providerName, providerEmail) => {
+    // Get user ID safely
+    const userId = userData.id || userData.uid;
+    
+    navigate(`/nafany/chat/${providerId}`, {
+      state: {
+        provider: {
+          id: providerId,
+          name: providerName,
+          email: providerEmail || 'provider@example.com',
+        },
+        user: {
+          id: userId,
+          name: userData.name,
+          email: userData.email,
+          profileImage: userData.profileImage
+        }
+      }
+    });
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
@@ -168,6 +219,58 @@ const HomePage = () => {
     }
   ];
 
+  // Chat section component
+  const renderChatsSection = () => {
+    if (!isLoggedIn) return null;
+    
+    return (
+      <motion.div 
+        className="mt-12"
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+      >
+        <h2 className="text-2xl font-bold text-center text-cyan-800 mb-6">
+          محادثاتك مع مقدمي الخدمة
+        </h2>
+        
+        {chats.length > 0 ? (
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-6 direction-rtl">
+            <div className="space-y-3 max-h-[300px] overflow-y-auto">
+              {chats.map((chat) => {
+                const providerId = chat.participants[0] === userData.id ? chat.participants[0] : chat.participants[1];
+                const providerName = chat.participantsNames[0] === userData.name ? chat.participantsNames[1] : chat.participantsNames[0];
+                const providerEmail = chat.participantsEmails?.find(e => e !== userData.email);
+                
+                return (
+                  <div 
+                    key={chat.id}
+                    className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex justify-between items-center cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleStartChat(providerId, providerName, providerEmail)}
+                  >
+                    <div className="flex items-center">
+                      <FaUserCircle className="text-gray-400 text-2xl ml-3" />
+                      <div>
+                        <p className="font-medium text-cyan-800">{providerName}</p>
+                        <p className="text-sm text-gray-600 truncate max-w-xs">{chat.lastMessage}</p>
+                      </div>
+                    </div>
+                    <FaArrowRight className="text-cyan-600" />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-6 text-center">
+            <p className="text-gray-500">لا توجد محادثات حتى الآن</p>
+            <p className="text-cyan-600 mt-2">ابحث عن مقدم خدمة للتواصل معه</p>
+          </div>
+        )}
+      </motion.div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -192,7 +295,7 @@ const HomePage = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          {'مرحبًا بك في  نفعني'}
+          {'مرحبًا بك في نفعني'}
         </motion.h1>
 
         {/* Services Grid */}
@@ -215,6 +318,9 @@ const HomePage = () => {
             <ServiceCard key={index} {...card} />
           ))}
         </motion.div>
+
+        {/* Chats Section - Only shown for logged in users */}
+        {renderChatsSection()}
 
         {/* Offers Section */}
         <motion.div 

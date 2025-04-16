@@ -50,6 +50,7 @@ const ProviderPortfolio = () => {
   });
 
   useEffect(() => {
+    
     const checkUser = async () => {
       const storedUser = localStorage.getItem('currentUser');
       if (storedUser && storedUser !== '""') {
@@ -65,10 +66,12 @@ const ProviderPortfolio = () => {
         ]);
         
         if (providersData) {
+         
           setProvidersData(providersData);
         }
         
         if (chatsData) {
+        
           setChats(chatsData);
         }
   
@@ -418,7 +421,7 @@ const ProviderPortfolio = () => {
               {chats.map((chat) => {
                 const clientId = chat.participants[0] === userData.id ? chat.participants[1] : chat.participants[0];
                 const clientName = chat.participantsNames[0] === userData.name ? chat.participantsNames[1] : chat.participantsNames[0];
-                
+                console.log(clientId)
                 return (
                   <div 
                     key={chat.id}
