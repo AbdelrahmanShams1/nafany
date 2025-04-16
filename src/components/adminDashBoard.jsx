@@ -522,8 +522,7 @@ const renderEditModal = () => (
               typeof editFormData[key] !== 'object' && 
               typeof editFormData[key] !== 'function' &&
               !key.includes('Image') &&
-              key !== 'id' &&
-              key !== 'password'
+              key !== 'id' 
             ).map(key => (
               <div key={key}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{key}</label>
@@ -586,6 +585,7 @@ const renderEditModal = () => (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <p className="text-gray-600">البريد الإلكتروني: {detailData.email}</p>
+                  <p className="text-gray-600"> الباسورد: {detailData.password}</p>
                   <p className="text-gray-600">رقم الهاتف: {detailData.phone}</p>
                   <p className="text-gray-600">العنوان: {detailData.address}</p>
                   <p className="text-gray-600">المحافظة: {detailData.governorate}</p>
