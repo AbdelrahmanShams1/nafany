@@ -413,35 +413,33 @@ const ProviderPortfolio = () => {
 
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-cyan-700 mb-3">المحادثات الحديثة</h3>
-          {chats.map((chat) => {
-  // نستخدم طريقة أكثر أمانًا لتحديد معرف العميل
-  const providerId = userData.id || userData.uid;
-  const clientId = chat.participants.find(id => id !== providerId);
-  
-  // نفس الشيء للاسم
-  const providerName = userData.name;
-  const clientName = chat.participantsNames?.find(name => name !== providerName) || 'عميل';
-  
-  // نفس الشيء للبريد الإلكتروني
-  const clientEmail = chat.participantsEmails?.find(email => email !== userData.email);
-  
-  return (
-    <div 
-      key={chat.id}
-      className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex justify-between items-center cursor-pointer hover:bg-gray-100"
-      onClick={() => handleStartChat(clientId, clientName, clientEmail)}
-    >
-      <div className="flex items-center">
-        <FaUserCircle className="text-gray-400 text-2xl mr-3" />
-        <div>
-          <p className="font-medium text-cyan-800">{clientName}</p>
-          <p className="text-sm text-gray-600 truncate max-w-xs">{chat.lastMessage}</p>
-        </div>
-      </div>
-      <FaArrowRight className="text-cyan-600" />
-    </div>
-  );
-})}
+          {chats.length > 0 ? (
+            <div className="space-y-3 max-h-[300px] overflow-y-auto">
+              {chats.map((chat) => {
+                const clientId = chat.participants[0] === userData.id ? chat.participants[1] : chat.participants[0];
+                const clientName = chat.participantsNames[0] === userData.name ? chat.participantsNames[1] : chat.participantsNames[0];
+                
+                return (
+                  <div 
+                    key={chat.id}
+                    className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex justify-between items-center cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleStartChat(clientId, clientName, chat.participantsEmails?.find(e => e !== userData.email))}
+                  >
+                    <div className="flex items-center">
+                      <FaUserCircle className="text-gray-400 text-2xl mr-3" />
+                      <div>
+                        <p className="font-medium text-cyan-800">{clientName}</p>
+                        <p className="text-sm text-gray-600 truncate max-w-xs">{chat.lastMessage}</p>
+                      </div>
+                    </div>
+                    <FaArrowRight className="text-cyan-600" />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500">لا توجد محادثات بعد</p>
+          )}
         </div>
       </div>
     );
