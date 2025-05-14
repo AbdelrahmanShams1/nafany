@@ -549,7 +549,7 @@ const ProviderDetailsPage = () => {
                     onClick={handleOpenBookingModal}
                     className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white px-6 py-3 rounded-xl shadow-md flex items-center text-lg transition-all duration-300"
                   >
-                    <FaCalendarAlt className="ml-2" />
+                    <FaCalendarAlt className="ml-2 mr-2" />
                     احجز موعد
                   </motion.button>
                 )}
@@ -560,7 +560,7 @@ const ProviderDetailsPage = () => {
                   onClick={handleStartChat}
                   className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl shadow-md flex items-center text-lg transition-all duration-300"
                 >
-                  <FaComments className="ml-2" />
+                  <FaComments className="ml-2 mr-2" />
                   محادثة
                 </motion.button>
               </motion.div>

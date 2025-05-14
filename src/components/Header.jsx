@@ -24,7 +24,7 @@ const Header = ({ isLoggedIn, onLogout, userData }) => {
       dir="rtl" // تعيين اتجاه RTL للعنصر بالكامل
     >
       {/* العناصر الزخرفية */}
-      <div className="absolute right-0 top-0 h-full w-1/3 bg-white opacity-10 transform skew-x-12"></div>
+      <div className="absolute right-[12px] top-0 h-full w-1/3 bg-white opacity-10 transform skew-x-12"></div>
       <div className="absolute left-0 bottom-0 h-24 w-24 bg-white opacity-10 rounded-full"></div>
 
       {/* الجزء الأيمن (الشعار والروابط) */}

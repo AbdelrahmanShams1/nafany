@@ -1,13 +1,60 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { db } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { 
+  FaUser, 
+  FaEnvelope, 
+  FaLock, 
+  FaPhone, 
+  FaMapMarkerAlt, 
+  FaAddressCard, 
+  FaBriefcase, 
+  FaCogs,
+  FaCheckCircle,
+  FaArrowLeft,
+  FaEdit,
+  FaSave,
+  FaTimes,
+  FaIdCard,
+  FaMoneyBillWave,
+  FaMapMarkedAlt,
+  FaBell,
+  FaImage,
+  FaFileAlt
+} from "react-icons/fa";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const fromProvider = location.state?.fromProvider || false;
+
+  // Container and item animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      } 
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5, ease: "easeOut" }
+    }
+  };
+
+  const buttonVariants = {
+    hover: { scale: 1.05, transition: { duration: 0.2 } },
+    tap: { scale: 0.95, transition: { duration: 0.1 } }
+  };
 
   // الحقول الأساسية لجميع المستخدمين
   const [userData, setUserData] = useState({
@@ -41,11 +88,11 @@ const SettingsPage = () => {
   const [idFrontImagePreview, setIdFrontImagePreview] = useState("");
   const [idBackImagePreview, setIdBackImagePreview] = useState("");
   const [profileImagePreview, setProfileImagePreview] = useState("");
+  const [activeSection, setActiveSection] = useState("basic"); // basic, provider, images
 
   // قوائم الاختيارات
   const governorates = [
     "وسط البلد", "الزمالك"
-   
   ];
 
   const serviceCategories = {
@@ -59,7 +106,6 @@ const SettingsPage = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        
         const storedUser = localStorage.getItem('currentUser');
         if (!storedUser) {
           navigate('/nafany/login');
@@ -72,15 +118,13 @@ const SettingsPage = () => {
         // تحديد اسم المجموعة بناءً على الدور
         const collectionName = currentUser.role === 'provider' ? 'serviceProviders' : 'users';
       
-        if(collectionName==='serviceProviders'){
-           docId = currentUser.email
-          
+        if(collectionName === 'serviceProviders'){
+          docId = currentUser.email;
         }
         else{
-           docId = currentUser.email.split('@')[0]; // أو استخدام currentUser.uid إذا كان محفوظاً
+          docId = currentUser.email.split('@')[0]; // أو استخدام currentUser.uid إذا كان محفوظاً
         }
        
-        
         const userDocRef = doc(db, collectionName, docId);
         const userDocSnap = await getDoc(userDocRef);
         
@@ -93,7 +137,7 @@ const SettingsPage = () => {
             email: data.email || "",
             password: "",
             governorate: data.governorate || "",
-            phone: data.phone || data.phoneNumber ||"",
+            phone: data.phone || data.phoneNumber || "",
             role: currentUser.role // استخدام الدور من currentUser
           });
   
@@ -132,6 +176,7 @@ const SettingsPage = () => {
   
     fetchUserData();
   }, [navigate]);
+
   const validateForm = () => {
     let newErrors = {};
 
@@ -227,7 +272,7 @@ const SettingsPage = () => {
       }
       else {
         username = userData.email.split('@')[0];
-       }
+      }
       const collectionName = userData.role === 'provider' ? 'serviceProviders' : 'users';
       
       const userDocRef = doc(db, collectionName, username);
@@ -247,7 +292,7 @@ const SettingsPage = () => {
       }
    
       await updateDoc(userDocRef, updateData);
-      console.log("Collection Name:", 1); 
+      
       // تحديث localStorage
       const updatedUser = {
         ...userData,
@@ -257,6 +302,11 @@ const SettingsPage = () => {
       
       setUpdateSuccess(true);
       setIsEditing(false);
+
+      // إظهار رسالة النجاح لمدة 3 ثوان ثم إخفاؤها
+      setTimeout(() => {
+        setUpdateSuccess(false);
+      }, 3000);
     } catch (error) {
       console.error("Error updating user data:", error);
       alert("حدث خطأ أثناء تحديث البيانات");
@@ -265,344 +315,594 @@ const SettingsPage = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-cyan-100 to-blue-200">
-        <div className="text-2xl text-cyan-800">جاري التحميل...</div>
-      </div>
-    );
-  }
-
-  return (
-    <motion.div
-      className="min-h-screen bg-gradient-to-b from-cyan-100 to-blue-200 py-12"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-    >
-      <div className="container mx-auto px-4">
-        <motion.button
-          onClick={() => navigate(fromProvider ? '/nafany/servicer_page' : '/nafany')}
-          className="mb-8 flex items-center text-cyan-800 font-medium"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          العودة للرئيسية
-        </motion.button>
-        
-        <motion.div
-          className="bg-white rounded-xl shadow-lg p-8 max-w-3xl mx-auto border border-cyan-100"
-          dir="rtl"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-2xl font-bold text-cyan-800">
-              {userData.role === 'provider' ? 'إعدادات مقدم الخدمة' : 'إعدادات الحساب'}
-            </h1>
-            {!isEditing && (
-              <motion.button
-                onClick={() => setIsEditing(true)}
-                className="bg-cyan-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-cyan-700"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                تعديل البيانات
-              </motion.button>
-            )}
+  // مكونات الشاشة المختلفة
+  const renderBasicInfoSection = () => (
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+      <motion.div className="space-y-2" variants={itemVariants}>
+        <label className="block text-gray-700 font-medium text-sm flex items-center">
+          <FaUser className="ml-2 text-cyan-600" />
+          الاسم
+        </label>
+        <div className="relative group">
+          <input
+            type="text"
+            name="name"
+            placeholder="أدخل الاسم"
+            className={`w-full border ${errors.name ? 'border-red-400' : 'border-gray-300'} rounded-lg p-3 pr-10 focus:ring-2 focus:ring-cyan-500 bg-white/80 backdrop-blur-sm transition-all duration-300 group-hover:shadow-md ${!isEditing && 'bg-gray-50'}`}
+            value={userData.name}
+            onChange={handleUserDataChange}
+            disabled={!isEditing}
+          />
+          <div className="absolute left-3 top-3 text-gray-400">
+            {isEditing && <FaEdit />}
           </div>
+        </div>
+        {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+      </motion.div>
 
-          {updateSuccess && (
-            <motion.div
-              className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              تم تحديث البيانات بنجاح
-            </motion.div>
-          )}
+      <motion.div className="space-y-2" variants={itemVariants}>
+        <label className="block text-gray-700 font-medium text-sm flex items-center">
+          <FaEnvelope className="ml-2 text-cyan-600" />
+          البريد الإلكتروني
+        </label>
+        <div className="relative">
+          <input
+            type="email"
+            name="email"
+            placeholder="أدخل البريد الإلكتروني"
+            className="w-full border border-gray-300 rounded-lg p-3 pr-10 focus:ring-2 focus:ring-cyan-500 bg-gray-50"
+            value={userData.email}
+            onChange={handleUserDataChange}
+            disabled={true} // لا يمكن تعديل البريد الإلكتروني
+          />
+          <div className="absolute left-3 top-3 text-gray-400">
+            <FaLock />
+          </div>
+        </div>
+        {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
+      </motion.div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* الحقول الأساسية لجميع المستخدمين */}
-            <div className="space-y-1">
-              <label className="block text-gray-700 font-medium text-sm">الاسم</label>
-              <input
-                type="text"
-                name="name"
-                placeholder="أدخل الاسم"
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-                value={userData.name}
-                onChange={handleUserDataChange}
-                disabled={!isEditing}
-              />
-              {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
-            </div>
+      <motion.div className="space-y-2" variants={itemVariants}>
+        <label className="block text-gray-700 font-medium text-sm flex items-center">
+          <FaLock className="ml-2 text-cyan-600" />
+          كلمة المرور
+          <span className="mr-1 text-xs text-gray-500">(اتركها فارغة إذا لم ترغب في تغييرها)</span>
+        </label>
+        <div className="relative group">
+          <input
+            type="password"
+            name="password"
+            placeholder="أدخل كلمة المرور الجديدة"
+            className={`w-full border ${errors.password ? 'border-red-400' : 'border-gray-300'} rounded-lg p-3 pr-10 focus:ring-2 focus:ring-cyan-500 transition-all duration-300 group-hover:shadow-md ${!isEditing && 'bg-gray-50'}`}
+            value={userData.password}
+            onChange={handleUserDataChange}
+            disabled={!isEditing}
+          />
+          <div className="absolute left-3 top-3 text-gray-400">
+            {isEditing && <FaEdit />}
+          </div>
+        </div>
+        {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
+      </motion.div>
 
-            <div className="space-y-1">
-              <label className="block text-gray-700 font-medium text-sm">البريد الإلكتروني</label>
-              <input
-                type="email"
-                name="email"
-                placeholder="أدخل البريد الإلكتروني"
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-                value={userData.email}
-                onChange={handleUserDataChange}
-                disabled={true} // لا يمكن تعديل البريد الإلكتروني
-              />
-              {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
-            </div>
+      <motion.div className="space-y-2" variants={itemVariants}>
+        <label className="block text-gray-700 font-medium text-sm flex items-center">
+          <FaPhone className="ml-2 text-cyan-600" />
+          رقم الهاتف
+        </label>
+        <div className="relative group">
+          <input
+            type="tel"
+            name="phone"
+            placeholder="أدخل رقم الهاتف"
+            className={`w-full border ${errors.phone ? 'border-red-400' : 'border-gray-300'} rounded-lg p-3 pr-10 focus:ring-2 focus:ring-cyan-500 transition-all duration-300 group-hover:shadow-md ${!isEditing && 'bg-gray-50'}`}
+            value={userData.phone}
+            onChange={handleUserDataChange}
+            disabled={!isEditing}
+          />
+          <div className="absolute left-3 top-3 text-gray-400">
+            {isEditing && <FaEdit />}
+          </div>
+        </div>
+        {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
+      </motion.div>
 
-            <div className="space-y-1">
-              <label className="block text-gray-700 font-medium text-sm">
-                كلمة المرور (اتركها فارغة إذا لم ترغب في تغييرها)
-              </label>
-              <input
-                type="password"
-                name="password"
-                placeholder="أدخل كلمة المرور الجديدة"
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-                value={userData.password}
-                onChange={handleUserDataChange}
-                disabled={!isEditing}
-              />
-              {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-gray-700 font-medium text-sm">رقم الهاتف</label>
-              <input
-                type="tel"
-                name="phone"
-                placeholder="أدخل رقم الهاتف"
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-                value={userData.phone}
-                onChange={handleUserDataChange}
-                disabled={!isEditing}
-              />
-              {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-gray-700 font-medium text-sm">المحافظة</label>
-              <select
-                name="governorate"
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-                value={userData.governorate}
-                onChange={handleUserDataChange}
-                disabled={!isEditing}
-              >
-                <option value="" disabled>اختر المحافظة</option>
-                {governorates.map((gov, i) => (
-                  <option key={i} value={gov}>{gov}</option>
-                ))}
-              </select>
-              {errors.governorate && <p className="text-red-500 text-sm">{errors.governorate}</p>}
-            </div>
-
-            {/* حقول مقدم الخدمة فقط */}
-            {userData.role === 'provider' && (
-              <>
-                <div className="space-y-1">
-                  <label className="block text-gray-700 font-medium text-sm">الرقم القومي</label>
-                  <input
-                    type="text"
-                    name="nationalId"
-                    placeholder="أدخل الرقم القومي"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-                    value={providerData.nationalId}
-                    onChange={handleProviderDataChange}
-                    disabled={!isEditing}
-                  />
-                  {errors.nationalId && <p className="text-red-500 text-sm">{errors.nationalId}</p>}
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-gray-700 font-medium text-sm">التصنيف</label>
-                  <select
-                    name="category"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-                    value={providerData.category}
-                    onChange={handleCategoryChange}
-                    disabled={!isEditing}
-                  >
-                    <option value="" disabled>اختر التصنيف</option>
-                    {Object.keys(serviceCategories).map((category, i) => (
-                      <option key={i} value={category}>{category}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-gray-700 font-medium text-sm">المهنة</label>
-                  <select
-                    name="profession"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-                    value={providerData.profession}
-                    onChange={handleProviderDataChange}
-                    disabled={!isEditing}
-                  >
-                    <option value="" disabled>اختر المهنة</option>
-                    {providerData.category && serviceCategories[providerData.category]?.map((profession, i) => (
-                      <option key={i} value={profession}>{profession}</option>
-                    ))}
-                  </select>
-                  {errors.profession && <p className="text-red-500 text-sm">{errors.profession}</p>}
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-gray-700 font-medium text-sm">رسوم الاشتراك</label>
-                  <select
-                    name="subscriptionFee"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-                    value={providerData.subscriptionFee}
-                    onChange={handleProviderDataChange}
-                    disabled={!isEditing}
-                  >
-                    {subscriptionFees.map((fee, i) => (
-                      <option key={i} value={fee}>{fee}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-gray-700 font-medium text-sm">العنوان</label>
-                  <input
-                    type="text"
-                    name="address"
-                    placeholder="أدخل العنوان بالتفصيل"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-                    value={providerData.address}
-                    onChange={handleProviderDataChange}
-                    disabled={!isEditing}
-                  />
-                  {errors.address && <p className="text-red-500 text-sm">{errors.address}</p>}
-                </div>
-
-                <div className="space-y-1">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      name="allowContact"
-                      checked={providerData.allowContact}
-                      onChange={handleProviderDataChange}
-                      disabled={!isEditing}
-                      className="rounded text-cyan-600 focus:ring-cyan-500"
-                    />
-                    <span className="text-gray-700">السماح بالتواصل المباشر مع العملاء</span>
-                  </label>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-gray-700 font-medium text-sm">صور البطاقة</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="block">صورة البطاقة من الأمام</label>
-                      {idFrontImagePreview ? (
-                        <img src={idFrontImagePreview} alt="Front ID" className="h-40 w-full object-contain border rounded-lg" />
-                      ) : (
-                        <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                          <span className="text-gray-500">لا توجد صورة</span>
-                        </div>
-                      )}
-                      {isEditing && (
-                        <input
-                          type="file"
-                          onChange={(e) => handleImageUpload(e, 'idFrontImage')}
-                          className="w-full"
-                          accept="image/*"
-                        />
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block">صورة البطاقة من الخلف</label>
-                      {idBackImagePreview ? (
-                        <img src={idBackImagePreview} alt="Back ID" className="h-40 w-full object-contain border rounded-lg" />
-                      ) : (
-                        <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                          <span className="text-gray-500">لا توجد صورة</span>
-                        </div>
-                      )}
-                      {isEditing && (
-                        <input
-                          type="file"
-                          onChange={(e) => handleImageUpload(e, 'idBackImage')}
-                          className="w-full"
-                          accept="image/*"
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-gray-700 font-medium text-sm">الصورة الشخصية</label>
-                  {profileImagePreview ? (
-                    <img src={profileImagePreview} alt="Profile" className="h-40 w-40 object-cover rounded-full mx-auto border" />
-                  ) : (
-                    <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-full h-40 w-40 mx-auto flex items-center justify-center">
-                      <span className="text-gray-500">لا توجد صورة</span>
-                    </div>
-                  )}
-                  {isEditing && (
-                    <input
-                      type="file"
-                      onChange={(e) => handleImageUpload(e, 'profileImage')}
-                      className="w-full"
-                      accept="image/*"
-                    />
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-gray-700 font-medium text-sm">نبذة عنك</label>
-                  <textarea
-                    name="bio"
-                    placeholder="أدخل نبذة عنك وخبراتك"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 h-24"
-                    value={providerData.bio}
-                    onChange={handleProviderDataChange}
-                    disabled={!isEditing}
-                  />
-                </div>
-
-              
-              </>
-            )}
-
-            {isEditing && (
-              <motion.div 
-                className="pt-4 grid grid-cols-2 gap-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <motion.button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium shadow-md"
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  إلغاء
-                </motion.button>
-                <motion.button
-                  type="submit"
-                  className="py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-medium shadow-md"
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  حفظ التغييرات
-                </motion.button>
-              </motion.div>
-            )}
-          </form>
-        </motion.div>
-      </div>
+      <motion.div className="space-y-2" variants={itemVariants}>
+        <label className="block text-gray-700 font-medium text-sm flex items-center">
+          <FaMapMarkerAlt className="ml-2 text-cyan-600" />
+          المحافظة
+        </label>
+        <div className="relative group">
+          <select
+            name="governorate"
+            className={`w-full border ${errors.governorate ? 'border-red-400' : 'border-gray-300'} rounded-lg p-3 pr-10 focus:ring-2 focus:ring-cyan-500 transition-all duration-300 group-hover:shadow-md ${!isEditing && 'bg-gray-50'}`}
+            value={userData.governorate}
+            onChange={handleUserDataChange}
+            disabled={!isEditing}
+          >
+            <option value="" disabled>اختر المحافظة</option>
+            {governorates.map((gov, i) => (
+              <option key={i} value={gov}>{gov}</option>
+            ))}
+          </select>
+          <div className="absolute left-3 top-3 text-gray-400">
+            {isEditing && <FaEdit />}
+          </div>
+        </div>
+        {errors.governorate && <p className="text-red-500 text-sm">{errors.governorate}</p>}
+      </motion.div>
     </motion.div>
+  );
+
+  const renderProviderSection = () => (
+    <motion.div 
+      variants={containerVariants} 
+      initial="hidden" 
+      animate="visible"
+      className="space-y-6"
+    >
+      <motion.div className="space-y-2" variants={itemVariants}>
+        <label className="block text-gray-700 font-medium text-sm flex items-center">
+          <FaIdCard className="ml-2 text-cyan-600" />
+          الرقم القومي
+        </label>
+        <div className="relative group">
+          <input
+            type="text"
+            name="nationalId"
+            placeholder="أدخل الرقم القومي"
+            className={`w-full border ${errors.nationalId ? 'border-red-400' : 'border-gray-300'} rounded-lg p-3 pr-10 focus:ring-2 focus:ring-cyan-500 transition-all duration-300 group-hover:shadow-md ${!isEditing && 'bg-gray-50'}`}
+            value={providerData.nationalId}
+            onChange={handleProviderDataChange}
+            disabled={!isEditing}
+          />
+          <div className="absolute left-3 top-3 text-gray-400">
+            {isEditing && <FaEdit />}
+          </div>
+        </div>
+        {errors.nationalId && <p className="text-red-500 text-sm">{errors.nationalId}</p>}
+      </motion.div>
+
+      <motion.div className="space-y-2" variants={itemVariants}>
+        <label className="block text-gray-700 font-medium text-sm flex items-center">
+          <FaBriefcase className="ml-2 text-cyan-600" />
+          التصنيف
+        </label>
+        <div className="relative group">
+          <select
+            name="category"
+            className={`w-full border ${errors.category ? 'border-red-400' : 'border-gray-300'} rounded-lg p-3 pr-10 focus:ring-2 focus:ring-cyan-500 transition-all duration-300 group-hover:shadow-md ${!isEditing && 'bg-gray-50'}`}
+            value={providerData.category}
+            onChange={handleCategoryChange}
+            disabled={!isEditing}
+          >
+            <option value="" disabled>اختر التصنيف</option>
+            {Object.keys(serviceCategories).map((category, i) => (
+              <option key={i} value={category}>{category}</option>
+            ))}
+          </select>
+          <div className="absolute left-3 top-3 text-gray-400">
+            {isEditing && <FaEdit />}
+          </div>
+        </div>
+        {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
+      </motion.div>
+
+      <motion.div className="space-y-2" variants={itemVariants}>
+        <label className="block text-gray-700 font-medium text-sm flex items-center">
+          <FaBriefcase className="ml-2 text-cyan-600" />
+          المهنة
+        </label>
+        <div className="relative group">
+          <select
+            name="profession"
+            className={`w-full border ${errors.profession ? 'border-red-400' : 'border-gray-300'} rounded-lg p-3 pr-10 focus:ring-2 focus:ring-cyan-500 transition-all duration-300 group-hover:shadow-md ${!isEditing && 'bg-gray-50'}`}
+            value={providerData.profession}
+            onChange={handleProviderDataChange}
+            disabled={!isEditing}
+          >
+            <option value="" disabled>اختر المهنة</option>
+            {providerData.category && serviceCategories[providerData.category]?.map((profession, i) => (
+              <option key={i} value={profession}>{profession}</option>
+            ))}
+          </select>
+          <div className="absolute left-3 top-3 text-gray-400">
+            {isEditing && <FaEdit />}
+          </div>
+        </div>
+        {errors.profession && <p className="text-red-500 text-sm">{errors.profession}</p>}
+      </motion.div>
+
+      <motion.div className="space-y-2" variants={itemVariants}>
+        <label className="block text-gray-700 font-medium text-sm flex items-center">
+          <FaMoneyBillWave className="ml-2 text-cyan-600" />
+          رسوم الاشتراك
+        </label>
+        <div className="relative group">
+          <select
+            name="subscriptionFee"
+            className={`w-full border ${errors.subscriptionFee ? 'border-red-400' : 'border-gray-300'} rounded-lg p-3 pr-10 focus:ring-2 focus:ring-cyan-500 transition-all duration-300 group-hover:shadow-md ${!isEditing && 'bg-gray-50'}`}
+            value={providerData.subscriptionFee}
+            onChange={handleProviderDataChange}
+            disabled={!isEditing}
+          >
+            {subscriptionFees.map((fee, i) => (
+              <option key={i} value={fee}>{fee}</option>
+            ))}
+          </select>
+          <div className="absolute left-3 top-3 text-gray-400">
+            {isEditing && <FaEdit />}
+          </div>
+        </div>
+      </motion.div>
+
+      <motion.div className="space-y-2" variants={itemVariants}>
+        <label className="block text-gray-700 font-medium text-sm flex items-center">
+          <FaMapMarkedAlt className="ml-2 text-cyan-600" />
+          العنوان
+        </label>
+        <div className="relative group">
+          <input
+            type="text"
+            name="address"
+            placeholder="أدخل العنوان بالتفصيل"
+            className={`w-full border ${errors.address ? 'border-red-400' : 'border-gray-300'} rounded-lg p-3 pr-10 focus:ring-2 focus:ring-cyan-500 transition-all duration-300 group-hover:shadow-md ${!isEditing && 'bg-gray-50'}`}
+            value={providerData.address}
+            onChange={handleProviderDataChange}
+            disabled={!isEditing}
+          />
+          <div className="absolute left-3 top-3 text-gray-400">
+            {isEditing && <FaEdit />}
+          </div>
+        </div>
+        {errors.address && <p className="text-red-500 text-sm">{errors.address}</p>}
+      </motion.div>
+
+      <motion.div className="space-y-2" variants={itemVariants}>
+        <label className="block text-gray-700 font-medium text-sm flex items-center">
+          <FaFileAlt className="ml-2 text-cyan-600" />
+          نبذة عنك
+        </label>
+        <div className="relative group">
+          <textarea
+            name="bio"
+            placeholder="أدخل نبذة عنك وخبراتك"
+            className={`w-full border ${errors.bio ? 'border-red-400' : 'border-gray-300'} rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 transition-all duration-300 group-hover:shadow-md h-24 ${!isEditing && 'bg-gray-50'}`}
+            value={providerData.bio}
+            onChange={handleProviderDataChange}
+            disabled={!isEditing}
+          />
+          <div className="absolute left-3 top-3 text-gray-400">
+            {isEditing && <FaEdit />}
+          </div>
+        </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <label className="flex items-center space-x-2 cursor-pointer">
+          <input
+            type="checkbox"
+            name="allowContact"
+            checked={providerData.allowContact}
+            onChange={handleProviderDataChange}
+            disabled={!isEditing}
+            className="rounded text-cyan-600 focus:ring-cyan-500 h-5 w-5"
+          />
+          <div className="flex items-center">
+            <FaBell className="ml-2 text-cyan-600" />
+            <span className="text-gray-700">السماح بالتواصل المباشر مع العملاء</span>
+          </div>
+        </label>
+      </motion.div>
+    </motion.div>
+  );
+
+  const renderImagesSection = () => (
+    <motion.div 
+      variants={containerVariants} 
+      initial="hidden" 
+      animate="visible"
+      className="space-y-8"
+    >
+      <motion.div variants={itemVariants} className="space-y-4">
+        <h3 className="text-xl font-semibold text-cyan-800 mb-4 flex items-center">
+          <span className="bg-cyan-700 text-white p-2 rounded-lg ml-2">
+            <FaIdCard />
+          </span>
+          صور البطاقة الشخصية
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <motion.div 
+            className="space-y-2"
+            whileHover={{ y: -5 }}
+            transition={{ duration: 0.3 }}
+          >
+            <label className="block font-medium text-gray-700">صورة البطاقة من الأمام</label>
+            <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-xl p-1 shadow-md overflow-hidden">
+              {idFrontImagePreview ? (
+                <img src={idFrontImagePreview} alt="Front ID" className="h-48 w-full object-contain rounded-lg" />
+              ) : (
+                <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center h-48 flex items-center justify-center">
+                  <span className="text-gray-500 flex flex-col items-center">
+                    <FaIdCard className="text-4xl mb-2 text-gray-400" />
+                    لا توجد صورة
+                  </span>
+                </div>
+              )}
+            </div>
+            {isEditing && (
+              <div className="relative mt-2">
+                <input
+                  type="file"
+                  onChange={(e) => handleImageUpload(e, 'idFrontImage')}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  accept="image/*"
+                />
+                <button className="w-full bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition flex items-center justify-center">
+                  <FaImage className="ml-2" />
+                  اختر صورة
+                </button>
+              </div>
+            )}
+          </motion.div>
+        
+          <motion.div 
+            className="space-y-2"
+            whileHover={{ y: -5 }}
+            transition={{ duration: 0.3 }}
+          >
+            <label className="block font-medium text-gray-700">صورة البطاقة من الخلف</label>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-1 shadow-md overflow-hidden">
+              
+{idBackImagePreview ? (
+                <img src={idBackImagePreview} alt="Back ID" className="h-48 w-full object-contain rounded-lg" />
+              ) : (
+                <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center h-48 flex items-center justify-center">
+                  <span className="text-gray-500 flex flex-col items-center">
+                    <FaIdCard className="text-4xl mb-2 text-gray-400" />
+                    لا توجد صورة
+                  </span>
+                </div>
+              )}
+            </div>
+            {isEditing && (
+              <div className="relative mt-2">
+                <input
+                  type="file"
+                  onChange={(e) => handleImageUpload(e, 'idBackImage')}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  accept="image/*"
+                />
+                <button className="w-full bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition flex items-center justify-center">
+                  <FaImage className="ml-2" />
+                  اختر صورة
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="space-y-4">
+        <h3 className="text-xl font-semibold text-cyan-800 mb-4 flex items-center">
+          <span className="bg-cyan-700 text-white p-2 rounded-lg ml-2">
+            <FaUser />
+          </span>
+          الصورة الشخصية
+        </h3>
+        <div className="flex justify-center">
+          <motion.div 
+            className="space-y-2 w-full max-w-sm"
+            whileHover={{ y: -5 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="bg-gradient-to-br from-cyan-50 to-blue-100 rounded-xl p-1 shadow-md overflow-hidden">
+              {profileImagePreview ? (
+                <img src={profileImagePreview} alt="Profile" className="h-48 w-full object-contain rounded-lg" />
+              ) : (
+                <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center h-48 flex items-center justify-center">
+                  <span className="text-gray-500 flex flex-col items-center">
+                    <FaUser className="text-4xl mb-2 text-gray-400" />
+                    لا توجد صورة
+                  </span>
+                </div>
+              )}
+            </div>
+            {isEditing && (
+              <div className="relative mt-2">
+                <input
+                  type="file"
+                  onChange={(e) => handleImageUpload(e, 'profileImage')}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  accept="image/*"
+                />
+                <button className="w-full bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition flex items-center justify-center">
+                  <FaImage className="ml-2" />
+                  اختر صورة
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+
+  const renderWorkingAreasSection = () => (
+    <motion.div 
+      variants={containerVariants} 
+      initial="hidden" 
+      animate="visible"
+      className="space-y-4"
+    >
+      <motion.h3 variants={itemVariants} className="text-xl font-semibold text-cyan-800 mb-4 flex items-center">
+        <span className="bg-cyan-700 text-white p-2 rounded-lg ml-2">
+          <FaMapMarkedAlt />
+        </span>
+        مناطق العمل
+      </motion.h3>
+
+      <motion.div variants={itemVariants} className="bg-white rounded-xl shadow-md p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {governorates.map((area, index) => (
+            <label key={index} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+              <input
+                type="checkbox"
+                value={area}
+                checked={providerData.workingAreas.includes(area)}
+                onChange={handleWorkingAreaChange}
+                disabled={!isEditing}
+                className="rounded text-cyan-600 focus:ring-cyan-500 h-5 w-5"
+              />
+              <span className="text-gray-700">{area}</span>
+            </label>
+          ))}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+
+  // المكون الرئيسي للصفحة
+  return (
+    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50">
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        {/* الرأس مع زر العودة */}
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center text-cyan-700 hover:text-cyan-900"
+          >
+            <FaArrowLeft className="ml-1" /> العودة
+          </button>
+          <h1 className="text-3xl font-bold text-cyan-800">إعدادات الحساب</h1>
+        </div>
+
+        {isLoading ? (
+          // شاشة التحميل
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cyan-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* رسالة التحديث الناجح */}
+            <AnimatePresence>
+              {updateSuccess && (
+                <motion.div 
+                  className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-lg flex items-center shadow-md"
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                >
+                  <FaCheckCircle className="text-green-500 ml-2 text-xl" />
+                  تم تحديث بياناتك بنجاح
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* أزرار التحرير والحفظ */}
+            <div className="bg-white rounded-xl shadow-md p-4 flex justify-between items-center">
+              <div className="text-lg font-medium text-gray-700 flex items-center">
+                <FaCogs className="ml-2 text-cyan-700" />
+                {isEditing ? "تعديل البيانات" : "بيانات الحساب"}
+              </div>
+              <div className="space-x-2 flex">
+                {isEditing ? (
+                  <>
+                    <motion.button
+                      variants={buttonVariants}
+                      whileHover="hover"
+                      whileTap="tap"
+                      onClick={handleSubmit}
+                      className="bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition flex items-center"
+                    >
+                      <FaSave className="ml-1" /> حفظ
+                    </motion.button>
+                    <motion.button
+                      variants={buttonVariants}
+                      whileHover="hover"
+                      whileTap="tap"
+                      onClick={() => setIsEditing(false)}
+                      className="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition flex items-center"
+                    >
+                      <FaTimes className="ml-1" /> إلغاء
+                    </motion.button>
+                  </>
+                ) : (
+                  <motion.button
+                    variants={buttonVariants}
+                    whileHover="hover"
+                    whileTap="tap"
+                    onClick={() => setIsEditing(true)}
+                    className="bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition flex items-center"
+                  >
+                    <FaEdit className="ml-1" /> تعديل
+                  </motion.button>
+                )}
+              </div>
+            </div>
+
+            {/* علامات التبويب */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+              <div className="flex border-b">
+                <button
+                  onClick={() => setActiveSection("basic")}
+                  className={`flex-1 py-3 px-4 font-medium transition-colors duration-300 ${
+                    activeSection === "basic" 
+                      ? "bg-cyan-100 text-cyan-800 border-b-2 border-cyan-600" 
+                      : "text-gray-600 hover:bg-cyan-50"
+                  }`}
+                >
+                  البيانات الأساسية
+                </button>
+                {userData.role === 'provider' && (
+                  <>
+                    <button
+                      onClick={() => setActiveSection("provider")}
+                      className={`flex-1 py-3 px-4 font-medium transition-colors duration-300 ${
+                        activeSection === "provider" 
+                          ? "bg-cyan-100 text-cyan-800 border-b-2 border-cyan-600" 
+                          : "text-gray-600 hover:bg-cyan-50"
+                      }`}
+                    >
+                      بيانات مقدم الخدمة
+                    </button>
+                    <button
+                      onClick={() => setActiveSection("images")}
+                      className={`flex-1 py-3 px-4 font-medium transition-colors duration-300 ${
+                        activeSection === "images" 
+                          ? "bg-cyan-100 text-cyan-800 border-b-2 border-cyan-600" 
+                          : "text-gray-600 hover:bg-cyan-50"
+                      }`}
+                    >
+                      الصور والوثائق
+                    </button>
+                    <button
+                      onClick={() => setActiveSection("areas")}
+                      className={`flex-1 py-3 px-4 font-medium transition-colors duration-300 ${
+                        activeSection === "areas" 
+                          ? "bg-cyan-100 text-cyan-800 border-b-2 border-cyan-600" 
+                          : "text-gray-600 hover:bg-cyan-50"
+                      }`}
+                    >
+                      مناطق العمل
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* محتوى التبويب النشط */}
+              <div className="p-6">
+                {activeSection === "basic" && renderBasicInfoSection()}
+                {activeSection === "provider" && userData.role === 'provider' && renderProviderSection()}
+                {activeSection === "images" && userData.role === 'provider' && renderImagesSection()}
+                {activeSection === "areas" && userData.role === 'provider' && renderWorkingAreasSection()}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

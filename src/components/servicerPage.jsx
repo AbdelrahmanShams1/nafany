@@ -494,7 +494,7 @@ const ProviderPortfolio = () => {
     const ratingsTotal = Number(reviews.reduce((sum, review) => sum + (review.rating || 0), 0));
     const ratingsCount = Number(reviews.length);
     const averageRating = ratingsCount > 0 ? (ratingsTotal / ratingsCount).toFixed(1) : 0;
-
+    console.log('Average Rating:', averageRating , 'Count:', ratingsCount , 'Total:', ratingsTotal);
     // حساب الترتيب (إذا كان لديك بيانات جميع المقدمين)
     const currentRank = providersData.allProviders.findIndex(
       p => p.email === userData.email
@@ -1166,14 +1166,26 @@ const ProviderPortfolio = () => {
     );
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-cyan-600"></div>
-        <p className="text-xl text-gray-700 mt-4">جاري تحميل البيانات...</p>
-      </div>
-    );
-  }
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-cyan-50 to-blue-100">
+          <motion.div 
+            className="bg-white p-8 rounded-full shadow-xl"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1, rotate: [0, 360] }}
+            transition={{ 
+              duration: 1.5,
+              repeat: Infinity,
+              repeatType: "loop",
+              ease: "easeInOut"
+            }}
+          >
+            <div className="text-2xl text-cyan-800 font-bold">جاري التحميل...</div>
+          </motion.div>
+        </div>
+      );
+    }
+  
 
   return (
     <div className="min-h-screen bg-gray-50 rtl">
