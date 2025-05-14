@@ -20,12 +20,8 @@ const RegisterUser = () => {
   const [usernameExists, setUsernameExists] = useState(false);
 
   const governorates = [
-    "وسط البلد", "الزمالك", "المعادي", "مدينة نصر", "مصر الجديدة",
-    "التجمع الخامس", "الرحاب", "مدينتي", "الشروق", "العبور",
-    "6 أكتوبر", "الشيخ زايد", "حدائق الأهرام", "المقطم", "عين شمس",
-    "المرج", "حلوان", "دار السلام", "السيدة زينب", "باب الشعرية",
-    "شبرا", "الزاوية الحمراء", "حدائق القبة", "المطرية", "مدينة بدر",
-    "البساتين", "التبين", "الواحة", "النزهة", "الهرم"
+    "وسط البلد", "الزمالك"
+   
   ];
 
   const validateForm = () => {
@@ -155,7 +151,7 @@ const RegisterUser = () => {
             >
               <option value="" disabled>اختر المحافظة</option>
               {governorates.map((option, i) => (
-                <option key={i} value={option}>{option}</option>
+                <option className={`${i < 3 && i != 0 ? "text-red-600" : ""}`} key={i} value={option}>{option}</option>
               ))}
             </select>
             {errors.governorate && <p className="text-red-500 text-sm">{errors.governorate}</p>}

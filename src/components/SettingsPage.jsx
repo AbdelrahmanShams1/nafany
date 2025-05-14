@@ -44,12 +44,8 @@ const SettingsPage = () => {
 
   // قوائم الاختيارات
   const governorates = [
-    "وسط البلد", "الزمالك", "المعادي", "مدينة نصر", "مصر الجديدة",
-    "التجمع الخامس", "الرحاب", "مدينتي", "الشروق", "العبور",
-    "6 أكتوبر", "الشيخ زايد", "حدائق الأهرام", "المقطم", "عين شمس",
-    "المرج", "حلوان", "دار السلام", "السيدة زينب", "باب الشعرية",
-    "شبرا", "الزاوية الحمراء", "حدائق القبة", "المطرية", "مدينة بدر",
-    "البساتين", "التبين", "الواحة", "النزهة", "الهرم"
+    "وسط البلد", "الزمالك"
+   
   ];
 
   const serviceCategories = {
@@ -224,10 +220,18 @@ const SettingsPage = () => {
     
     try {
       setIsLoading(true);
-      const username = userData.email.split('@')[0];
+      let username;
+      
+      if (userData.role === 'provider') {
+       username = userData.email;
+      }
+      else {
+        username = userData.email.split('@')[0];
+       }
       const collectionName = userData.role === 'provider' ? 'serviceProviders' : 'users';
       
       const userDocRef = doc(db, collectionName, username);
+      console.log("Document Reference:", userDocRef.path); // طباعة مسار الوثيقة في وحدة التحكم
       
       // تحضير بيانات التحديث
       const updateData = { 
@@ -239,11 +243,11 @@ const SettingsPage = () => {
       if (!updateData.password) {
         delete updateData.password;
       } else {
-        // هنا يمكنك تشفير كلمة المرور قبل حفظها
+          // هنا يمكنك تشفير كلمة المرور قبل حفظها
       }
-      
+   
       await updateDoc(userDocRef, updateData);
-      
+      console.log("Collection Name:", 1); 
       // تحديث localStorage
       const updatedUser = {
         ...userData,
@@ -565,25 +569,7 @@ const SettingsPage = () => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-gray-700 font-medium text-sm">مناطق العمل</label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {governorates.map((governorate, i) => (
-                      <div key={i} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id={`governorate-${i}`}
-                          value={governorate}
-                          checked={providerData.workingAreas?.includes(governorate) || false}
-                          onChange={handleWorkingAreaChange}
-                          disabled={!isEditing}
-                          className="ml-2"
-                        />
-                        <label htmlFor={`governorate-${i}`}>{governorate}</label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              
               </>
             )}
 

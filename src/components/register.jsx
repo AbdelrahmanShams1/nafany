@@ -24,11 +24,12 @@ const RegisterProvider = () => {
     address: "",
     ratings: {},
     chats: {},
-    works: [],
     worksCount: 0,
     averageRating: 0,
     totalRatings: 0,
-    role:"user"
+    role:"user",
+    works: [],
+    worksCount: 0,
   });
 
   const [previewFrontImage, setPreviewFrontImage] = useState(null);
@@ -39,12 +40,8 @@ const RegisterProvider = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const governorates = [
-    "وسط البلد", "الزمالك", "المعادي", "مدينة نصر", "مصر الجديدة",
-    "التجمع الخامس", "الرحاب", "مدينتي", "الشروق", "العبور",
-    "6 أكتوبر", "الشيخ زايد", "حدائق الأهرام", "المقطم", "عين شمس",
-    "المرج", "حلوان", "دار السلام", "السيدة زينب", "باب الشعرية",
-    "شبرا", "الزاوية الحمراء", "حدائق القبة", "المطرية", "مدينة بدر",
-    "البساتين", "التبين", "الواحة", "النزهة", "الهرم"
+    "وسط البلد", "الزمالك"
+   
   ];
 
   const serviceCategories = {
@@ -191,7 +188,11 @@ const RegisterProvider = () => {
         works: [],
         worksCount: 0,
         averageRating: 0,
-        totalRatings: 0
+        totalRatings: 0,
+        bookings: [],
+         reviews: [], // مصفوفة التقييمات
+  ratingsCount: 0, // عدد التقييمات
+  ratingsTotal: 0 // مجموع التقييمات
       };
 
       if (formData.category === "خدمات فنية") {
@@ -338,7 +339,7 @@ const RegisterProvider = () => {
               onChange={(e) => setFormData(prev => ({ ...prev, governorate: e.target.value }))}
             >
               {governorates.map((gov, i) => (
-                <option key={i} value={gov}>{gov}</option>
+                <option className={`${i < 3 && i != 0 ? "text-red-600" : ""}`} key={i} value={gov}>{gov}</option>
               ))}
             </select>
           </motion.div>

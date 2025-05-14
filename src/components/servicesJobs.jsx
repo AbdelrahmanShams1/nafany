@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
+
 const JobsPage = () => {
   const { serviceType, professionType } = useParams(); // استخراج نوع المهنة المحددة
   const navigate = useNavigate();
@@ -16,14 +17,10 @@ const JobsPage = () => {
   const [governoratesList, setGovernoratesList] = useState([]);
 
   // قائمة المحافظات المصرية
-  const allGovernorates = [
-    "وسط البلد", "الزمالك", "المعادي", "مدينة نصر", "مصر الجديدة",
-    "التجمع الخامس", "الرحاب", "مدينتي", "الشروق", "العبور",
-    "6 أكتوبر", "الشيخ زايد", "حدائق الأهرام", "المقطم", "عين شمس",
-    "المرج", "حلوان", "دار السلام", "السيدة زينب", "باب الشعرية",
-    "شبرا", "الزاوية الحمراء", "حدائق القبة", "المطرية", "مدينة بدر",
-    "البساتين", "التبين", "الواحة", "النزهة", "الهرم"
-];
+  const governorates = [
+    "وسط البلد", "الزمالك"
+   
+  ];
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -62,8 +59,9 @@ const JobsPage = () => {
 
         setAllJobs(jobsData);
         setFilteredJobs(jobsData);
+        console.log('Jobs data:', jobsData);
         setProfessionsList(Array.from(professions));
-        setGovernoratesList(['الكل', ...allGovernorates]);
+        setGovernoratesList([ ...governorates]);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching jobs:', err);
@@ -89,8 +87,8 @@ const JobsPage = () => {
     setFilteredJobs(filtered);
   }, [selectedProfession, selectedGovernorate, allJobs]);
 
-  const handleDetailsClick = (provider) => {
-    navigate(`/nafany/book_page/${provider.id}`, { state: { provider } });
+  const handleDetailsClick = (provider , bool) => {
+    navigate(`/nafany/book_page/${provider.id}`, { state: { provider , bool } });
   };
 
   // دالة لإنشاء عنوان الصفحة بناءً على حالة الفلتر
@@ -163,7 +161,7 @@ const JobsPage = () => {
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-cyan-500"
               >
                 {governoratesList.map((gov, index) => (
-                  <option key={`gov-${index}`} value={gov}>
+                  <option className={`${index < 3 && index != 0 ? "text-red-600" : ""}`} key={`gov-${index}`} value={gov}>
                     {gov}
                   </option>
                 ))}
@@ -222,7 +220,7 @@ const JobsPage = () => {
                     {job.governorate}
                   </span>
                   <button 
-                    onClick={() => handleDetailsClick(job.providerData)}
+                    onClick={() => handleDetailsClick(job.providerData , job.providerData.category =="خدمات صحية" || job.providerData.category =="خدمات فنية" ? true : false)}
                     className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
                   >
                     عرض الملف الشخصي

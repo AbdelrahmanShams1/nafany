@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { 
@@ -13,9 +13,23 @@ import {
   updateDoc, 
   serverTimestamp,
   arrayUnion,
-  onSnapshot
+  onSnapshot,
+  increment,
 } from 'firebase/firestore';
-import { FaStar, FaRegStar, FaCalendarAlt, FaComments, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { 
+  FaStar, 
+  FaRegStar, 
+  FaCalendarAlt, 
+  FaComments, 
+  FaCheckCircle, 
+  FaTimesCircle,
+  FaArrowLeft,
+  FaUserCircle,
+  FaRegCalendarAlt,
+  FaArrowDown,
+  FaArrowUp,
+  FaCommentDots
+} from 'react-icons/fa';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import ModalImage from "react-modal-image";
@@ -41,11 +55,45 @@ const ProviderDetailsPage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [activeTab, setActiveTab] = useState('works');
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
-  const [bookingResult, setBookingResult] = useState(null); 
+  const [bookingResult, setBookingResult] = useState(null);
   const [showResultModal, setShowResultModal] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const createChatId = (id1, id2) => {
-    return [id1, id2].sort().join('_');
+  const [allowChat, setAllowChat] = useState(false);
+  // New state variables for expanded features
+  const [showReviews, setShowReviews] = useState(false);
+  const [expandedWorkId, setExpandedWorkId] = useState(null);
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        when: "beforeChildren",
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+
+  const buttonVariants = {
+    hover: { scale: 1.05 },
+    tap: { scale: 0.95 }
+  };
+
+  const cardVariants = {
+    hover: { 
+      y: -5,
+      boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)"
+    }
   };
 
   useEffect(() => {
@@ -54,8 +102,9 @@ const ProviderDetailsPage = () => {
         setLoading(true);
         let provider;
 
-        if (location.state && location.state.provider) {
+        if (location.state && location.state.provider && location.state.bool) {
           provider = location.state.provider;
+          setAllowChat(location.state.bool);
         } else {
           const providerDoc = await getDoc(doc(db, 'serviceProviders', providerId));
           if (providerDoc.exists()) {
@@ -66,32 +115,10 @@ const ProviderDetailsPage = () => {
         }
 
         setProviderData(provider);
-
-        // الاشتراك في التحديثات التلقائية للأعمال
-        const worksQuery = query(
-          collection(db, 'providerWorks'),
-          where('providerEmail', '==', provider.email)
-        );
-        const worksUnsubscribe = onSnapshot(worksQuery, (snapshot) => {
-          const worksData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          setWorks(worksData);
-        });
-
-        // الاشتراك في التحديثات التلقائية للتقييمات
-        const reviewsQuery = query(
-          collection(db, 'reviews'),
-          where('providerEmail', '==', provider.email)
-        );
-        const reviewsUnsubscribe = onSnapshot(reviewsQuery, (snapshot) => {
-          const reviewsData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          setReviews(reviewsData);
-        });
+        setWorks(provider.works || []);
+        
+        // جلب التقييمات من بيانات مقدم الخدمة مباشرة
+        setReviews(provider.reviews || []);
 
         const storedUser = localStorage.getItem('currentUser');
         if (storedUser && storedUser !== '""') {
@@ -100,12 +127,6 @@ const ProviderDetailsPage = () => {
         }
 
         setLoading(false);
-
-        // تنظيف الاشتراكات عند unmount
-        return () => {
-          worksUnsubscribe();
-          reviewsUnsubscribe();
-        };
       } catch (error) {
         console.error('Error fetching provider data:', error);
         setErrorMessage('حدث خطأ أثناء تحميل البيانات');
@@ -117,9 +138,9 @@ const ProviderDetailsPage = () => {
   }, [providerId, location]);
 
   const calculateAverageRating = () => {
-    if (!reviews || reviews.length === 0) return 0;
-    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-    return (totalRating / reviews.length).toFixed(1);
+    if (!providerData?.reviews || providerData.reviews.length === 0) return 0;
+    const totalRating = providerData.reviews.reduce((sum, review) => sum + review.rating, 0);
+    return (totalRating / providerData.reviews.length).toFixed(1);
   };
 
   const checkAppointmentAvailability = async (date, time) => {
@@ -145,12 +166,12 @@ const ProviderDetailsPage = () => {
       setErrorMessage('يرجى تسجيل الدخول أولاً للحجز');
       return;
     }
-  
+
     if (!selectedDate || !selectedTime) {
       setErrorMessage('يرجى اختيار التاريخ والوقت للحجز');
       return;
     }
-  
+
     try {
       // تحويل التاريخ إلى تنسيق مناسب مع المنطقة الزمنية
       const formattedDate = selectedDate.toLocaleDateString('ar-EG', {
@@ -158,7 +179,7 @@ const ProviderDetailsPage = () => {
         month: 'long',
         day: 'numeric'
       });
-  
+
       // تنسيق التاريخ للتخزين في Firebase (بدون مشاكل المنطقة الزمنية)
       const dateForFirestore = selectedDate.toISOString().split('T')[0];
       
@@ -174,8 +195,9 @@ const ProviderDetailsPage = () => {
         setShowResultModal(true);
         return;
       }
-  
+
       const bookingData = {
+        id: `booking-${Date.now()}`, // إضافة معرف فريد
         providerEmail: providerData.email,
         providerName: providerData.name,
         clientEmail: userData.email,
@@ -184,19 +206,27 @@ const ProviderDetailsPage = () => {
         bookingTime: selectedTime,
         note: bookingNote,
         status: 'pending',
-        createdAt: serverTimestamp()
+        createdAt: new Date().toISOString(),
+        clientId: userData.uid,
+        profession: providerData.profession || 'غير محدد',
       };
-  
-      const bookingRef = await addDoc(collection(db, 'bookings'), bookingData);
-  
-      await updateDoc(doc(db, 'serviceProviders', providerId), {
-        bookings: arrayUnion(bookingRef.id)
+
+      // تحديث وثيقة مقدم الخدمة مباشرةً
+      const providerRef = doc(db, 'serviceProviders', providerId);
+      
+      await updateDoc(providerRef, {
+        bookings: arrayUnion(bookingData)
       });
-  
-      await updateDoc(doc(db, 'users', userData.uid), {
-        bookings: arrayUnion(bookingRef.id)
+
+      // يمكنك أيضاً تحديث وثيقة المستخدم إذا لزم الأمر
+      const userRef = doc(db, 'users', userData.uid);
+      await updateDoc(userRef, {
+        bookings: arrayUnion({
+          ...bookingData,
+          providerId: providerId
+        })
       });
-  
+
       setBookingResult({
         success: true,
         message: `تم الحجز بنجاح مع ${providerData.name} في ${formattedDate} الساعة ${selectedTime}`
@@ -224,53 +254,54 @@ const ProviderDetailsPage = () => {
       setErrorMessage('يرجى تسجيل الدخول أولاً لإضافة تقييم');
       return;
     }
-  
+
     if (rating === 0) {
       setErrorMessage('يرجى تحديد التقييم النجمي');
       return;
     }
-  
+
     try {
       setIsSubmittingReview(true);
-      const reviewData = {
+      
+      const newReview = {
+        id: Date.now().toString(),
         providerEmail: providerData.email,
         providerName: providerData.name,
-        providerCategory: providerData.category,
         clientEmail: userData.email,
         clientName: userData.name,
         rating: rating,
         review: reviewText,
-        createdAt: serverTimestamp()
+        createdAt: new Date().toISOString()
       };
-  
-      // إضافة التقييم
-      const reviewRef = await addDoc(collection(db, 'reviews'), reviewData);
-  
-      // تحديث بيانات مقدم الخدمة
-      await updateDoc(doc(db, 'serviceProviders', providerId), {
-        reviews: arrayUnion(reviewRef.id),
+
+      const providerRef = doc(db, 'serviceProviders', providerId);
+      
+      await updateDoc(providerRef, {
+        reviews: arrayUnion(newReview),
+        ratingsCount: increment(1),
+        ratingsTotal: increment(rating)
+      });
+
+      // تحديث الحالة المحلية مباشرة
+      setReviews([...reviews, newReview]);
+      setProviderData({
+        ...providerData,
+        reviews: [...reviews, newReview],
         ratingsCount: (providerData.ratingsCount || 0) + 1,
         ratingsTotal: (providerData.ratingsTotal || 0) + rating
-      }, { merge: true });
-  
-      // تحديث الحالة مباشرة بدون الحاجة لإعادة جلب البيانات
-      setReviews([...reviews, {
-        id: reviewRef.id,
-        ...reviewData
-      }]);
-      
+      });
+
       setRating(0);
       setReviewText('');
       setSuccessMessage('تم إضافة تقييمك بنجاح!');
-  
+
       setTimeout(() => {
         setSuccessMessage('');
       }, 3000);
-  
+
     } catch (error) {
       console.error('Error submitting review:', error);
       setErrorMessage('حدث خطأ أثناء إرسال التقييم');
-  
       setTimeout(() => {
         setErrorMessage('');
       }, 3000);
@@ -303,40 +334,40 @@ const ProviderDetailsPage = () => {
     setShowBookingModal(true);
   };
 
-// تأكد من أنك تمرر البيانات بشكل صحيح
-const handleStartChat = () => {
-  if (!userData || !providerData) return;
+  // تأكد من أنك تمرر البيانات بشكل صحيح
+  const handleStartChat = () => {
+    if (!userData || !providerData) return;
 
-  // توحيد المعرفات
-  const userId = userData.uid || userData.id;
-  const providerId = providerData.id || providerData.uid;
+    // توحيد المعرفات
+    const userId = userData.uid || userData.id;
+    const providerId = providerData.id || providerData.uid;
 
-  navigate(`/nafany/chat/${providerId}`, {
-    state: {
-      provider: {
-        id: providerId,
-        email: providerData.email,
-        name: providerData.name,
-        profileImage: providerData.profileImage || '/default-profile.png'
-      },
-      user: {
-        id: userId,
-        email: userData.email,
-        name: userData.name,
-        profileImage: userData.profileImage || '/default-profile.png'
+    navigate(`/nafany/chat/${providerId}`, {
+      state: {
+        provider: {
+          id: providerId,
+          email: providerData.email,
+          name: providerData.name,
+          profileImage: providerData.profileImage || '/default-profile.png'
+        },
+        user: {
+          id: userId,
+          email: userData.email,
+          name: userData.name,
+          profileImage: userData.profileImage || '/default-profile.png'
+        }
       }
-    }
-  });
-};
+    });
+  };
 
-  const renderRatingStars = (current, onClickFn = null, onHoverFn = null) => {
+  const renderRatingStars = (current, onClickFn = null, onHoverFn = null, size = "") => {
     return [1, 2, 3, 4, 5].map((star) => (
       <span 
         key={star} 
         onClick={onClickFn ? () => onClickFn(star) : undefined}
         onMouseEnter={onHoverFn ? () => onHoverFn(star) : undefined}
         onMouseLeave={onHoverFn ? () => onHoverFn(0) : undefined}
-        className="cursor-pointer text-xl"
+        className={`cursor-pointer ${size === "lg" ? "text-2xl" : "text-xl"}`}
         style={{ color: star <= current ? '#FFD700' : '#C0C0C0' }}
       >
         {star <= current ? <FaStar /> : <FaRegStar />}
@@ -347,9 +378,15 @@ const handleStartChat = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-gradient-to-b from-cyan-100 to-blue-200">
-        <div className="text-center text-cyan-800 text-xl font-semibold">
-          جاري تحميل البيانات...
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="bg-white p-8 rounded-2xl shadow-xl text-center"
+        >
+          <div className="w-16 h-16 border-4 border-t-cyan-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-cyan-800 text-xl font-semibold">جاري تحميل البيانات...</p>
+        </motion.div>
       </div>
     );
   }
@@ -357,61 +394,87 @@ const handleStartChat = () => {
   if (!providerData) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-gradient-to-b from-cyan-100 to-blue-200">
-        <div className="text-center text-red-600 text-xl font-semibold">
-          لم يتم العثور على مقدم الخدمة، يرجى التحقق من الرابط والمحاولة مرة أخرى.
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="bg-white p-8 rounded-2xl shadow-xl text-center max-w-md w-full"
+        >
+          <div className="text-red-500 text-5xl mb-4">
+            <FaTimesCircle className="mx-auto" />
+          </div>
+          <p className="text-red-600 text-xl font-semibold mb-4">لم يتم العثور على مقدم الخدمة</p>
+          <p className="text-gray-600 mb-6">يرجى التحقق من الرابط والمحاولة مرة أخرى.</p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate(-1)}
+            className="bg-cyan-600 text-white px-6 py-3 rounded-xl shadow-md hover:bg-cyan-700 transition-colors"
+          >
+            العودة للصفحة السابقة
+          </motion.button>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <motion.div 
-      className="min-h-screen bg-gradient-to-b from-cyan-100 to-blue-200 py-8"
+      className="min-h-screen bg-gradient-to-b from-cyan-50 to-blue-100 py-8"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => navigate(-1)}
-        className="flex items-center ml-10 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors"
-      >
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          className="h-5 w-5 mr-1" 
-          viewBox="0 0 20 20" 
-          fill="currentColor"
-        >
-          <path 
-            fillRule="evenodd" 
-            d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" 
-            clipRule="evenodd" 
-          />
-        </svg>
-        رجوع
-      </motion.button>
-      
       <div className="container mx-auto px-4">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigate(-1)}
+          className="flex items-center mb-6 bg-white hover:bg-gray-50 px-5 py-3 rounded-xl shadow-md transition-all"
+        >
+          <FaArrowLeft className="ml-2" />
+          <span className="font-medium">رجوع</span>
+        </motion.button>
+        
         {successMessage && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-            {successMessage}
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-gradient-to-r from-green-50 to-green-100 border-l-4 border-green-500 text-green-700 px-6 py-4 rounded-xl shadow-md mb-6 flex items-center"
+          >
+            <FaCheckCircle className="text-green-500 text-xl ml-3" />
+            <span className="font-medium">{successMessage}</span>
+          </motion.div>
         )}
+        
         {errorMessage && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-            {errorMessage}
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-xl shadow-md mb-6 flex items-center"
+          >
+            <FaTimesCircle className="text-red-500 text-xl ml-3" />
+            <span className="font-medium">{errorMessage}</span>
+          </motion.div>
         )}
 
         <motion.div
-          className="bg-white rounded-xl shadow-lg p-6 mb-8"
+          className="bg-gradient-to-br from-white to-cyan-50 rounded-2xl shadow-xl p-8 mb-8 relative overflow-hidden"
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="flex flex-col md:flex-row items-center md:items-start">
-            <div className="w-40 h-40 rounded-full overflow-hidden mb-4 md:mb-0 md:mr-6">
+          {/* Decorative Elements */}
+          <div className="absolute -right-16 -top-16 w-32 h-32 bg-cyan-500 opacity-10 rounded-full"></div>
+          <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-blue-500 opacity-10 rounded-full"></div>
+          
+          <div className="flex flex-col md:flex-row items-center md:items-start relative z-10">
+            <motion.div 
+              className="w-40 h-40 rounded-full border-4 border-white overflow-hidden mb-6 md:mb-0 md:ml-8 shadow-lg"
+              whileHover={{ scale: 1.05 }}
+            >
               <img 
                 src={providerData.profileImage || '../../public/IMG-20250322-WA0070.jpg'} 
                 alt={providerData.name} 
@@ -421,164 +484,246 @@ const handleStartChat = () => {
                   e.target.src = '../../public/IMG-20250322-WA0070.jpg'
                 }}
               />
-            </div>
+            </motion.div>
             
             <div className="flex-1 text-center md:text-right">
-              <h1 className="text-3xl font-bold text-cyan-800 mb-2">
+              <motion.h1 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="text-3xl font-bold text-cyan-800 mb-3"
+              >
                 {providerData.name}
-              </h1>
-              <div className="flex items-center justify-center md:justify-end mb-2">
-                <div className="bg-cyan-100 text-cyan-800 px-3 py-1 rounded-full text-sm mr-2">
-                  {providerData.profession || providerData.category}
-                </div>
-                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                  {providerData.governorate || 'غير محدد المنطقة'}
-                </div>
-              </div>
+              </motion.h1>
               
-              <div className="flex items-center justify-center md:justify-end mb-4">
-                <div className="flex items-center">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                className="flex flex-wrap items-center justify-center md:justify-end gap-2 mb-3"
+              >
+                <span className="bg-gradient-to-r from-cyan-100 to-cyan-200 text-cyan-800 px-4 py-2 rounded-full text-sm font-medium shadow-sm">
+                  {providerData.profession || providerData.category}
+                </span>
+                <span className="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 px-4 py-2 rounded-full text-sm font-medium shadow-sm">
+                  {providerData.governorate || 'غير محدد المنطقة'}
+                </span>
+              </motion.div>
+              
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                className="flex items-center justify-center md:justify-end mb-5"
+              >
+                <div className="flex items-center bg-gradient-to-r from-yellow-50 to-yellow-100 px-4 py-2 rounded-xl shadow-sm">
                   {renderRatingStars(Math.round(calculateAverageRating()))}
-                  <span className="mx-2 text-yellow-500 font-bold">
+                  <span className="mx-2 text-yellow-600 font-bold">
                     {calculateAverageRating()}
                   </span>
-                  <span className="text-gray-500">
+                  <span className="text-gray-600">
                     ({reviews.length} تقييم)
                   </span>
                 </div>
-              </div>
+              </motion.div>
               
-              <p className="text-gray-600 mb-4 max-w-2xl">
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                className="text-gray-600 mb-6 max-w-2xl mx-auto md:mr-0"
+              >
                 {providerData.bio || 'لا يوجد وصف لمقدم الخدمة'}
-              </p>
+              </motion.p>
               
-              <div className="flex flex-wrap justify-center md:justify-start space-x-4 mt-4">
-                <button 
-                  onClick={handleOpenBookingModal}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2 rounded-lg flex items-center"
-                >
-                  <FaCalendarAlt className="mr-2" />
-                  احجز موعد
-                </button>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.7 }}
+                className="flex flex-wrap justify-center md:justify-end gap-4"
+              >
+                {allowChat && (
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleOpenBookingModal}
+                    className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white px-6 py-3 rounded-xl shadow-md flex items-center text-lg transition-all duration-300"
+                  >
+                    <FaCalendarAlt className="ml-2" />
+                    احجز موعد
+                  </motion.button>
+                )}
                 
-                <button 
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={handleStartChat}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center"
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl shadow-md flex items-center text-lg transition-all duration-300"
                 >
-                  <FaComments className="mr-2" />
+                  <FaComments className="ml-2" />
                   محادثة
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             </div>
           </div>
         </motion.div>
 
-        <div className="mb-6 flex border-b border-gray-200">
-          <button
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'works'
-                ? 'text-cyan-600 border-b-2 border-cyan-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('works')}
+        <div className="mb-8">
+          <motion.div 
+            className="bg-white rounded-2xl shadow-md overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
           >
-            الأعمال السابقة
-          </button>
-          <button
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'reviews'
-                ? 'text-cyan-600 border-b-2 border-cyan-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('reviews')}
-          >
-            التقييمات
-          </button>
-          <button
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'about'
-                ? 'text-cyan-600 border-b-2 border-cyan-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('about')}
-          >
-            عن مقدم الخدمة
-          </button>
+            <div className="flex overflow-x-auto">
+              {["works", "reviews", "about"].map((tab) => (
+                <motion.button
+                  key={tab}
+                  whileHover={{ backgroundColor: "#f0f9ff" }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-8 py-4 font-medium whitespace-nowrap transition-all duration-300 ${
+                    activeTab === tab
+                      ? 'text-cyan-600 border-b-3 border-cyan-600 bg-cyan-50'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {tab === "works" && "الأعمال السابقة"}
+                  {tab === "reviews" && "التقييمات"}
+                  {tab === "about" && "عن مقدم الخدمة"}
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
         </div>
 
         {activeTab === 'works' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
           >
-            <h2 className="text-2xl font-bold text-cyan-800 mb-4">الأعمال السابقة</h2>
+            <motion.h2 
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              className="text-2xl font-bold text-cyan-800 mb-6 flex items-center"
+            >
+              <span className="bg-cyan-700 text-white p-2 rounded-lg ml-2 mr-2 text-sm">
+                <FaCalendarAlt />
+              </span>
+              الأعمال السابقة
+            </motion.h2>
             
             {works.length > 0 ? (
-              <div className="space-y-8">
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+              >
                 {works.map((work, index) => (
                   <motion.div 
                     key={work.id}
+                    variants={cardVariants}
+                    whileHover="hover"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-white rounded-xl shadow-lg overflow-hidden"
+                    className={`bg-gradient-to-br from-white to-cyan-50 rounded-2xl shadow-lg overflow-hidden transition-all duration-300 ${
+                      expandedWorkId === work.id ? 'md:col-span-2' : ''
+                    }`}
                   >
                     <div className="p-6">
                       <h3 className="text-xl font-bold text-cyan-800 mb-4">{work.title}</h3>
                       
-                      {work.images && work.images.length > 0 && (
-                        <div className="mb-6">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <p className={`text-gray-600 mb-4 ${
+                        expandedWorkId === work.id ? '' : 'line-clamp-2'
+                      }`}>
+                        {work.description}
+                      </p>
+                      
+                      <motion.button
+                        onClick={() => setExpandedWorkId(expandedWorkId === work.id ? null : work.id)}
+                        className="text-cyan-600 hover:text-cyan-800 flex items-center text-sm font-medium"
+                        variants={buttonVariants}
+                        whileHover="hover"
+                        whileTap="tap"
+                      >
+                        {expandedWorkId === work.id ? 'عرض أقل' : 'عرض المزيد'}
+                        <span className="mr-1">
+                          {expandedWorkId === work.id ? <FaArrowUp /> : <FaArrowDown />}
+                        </span>
+                      </motion.button>
+                      
+                      {work.images && work.images.length > 0 && expandedWorkId === work.id && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="mt-4"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {work.images.map((image, imgIndex) => (
-                              <ModalImage
+                              <motion.div 
                                 key={imgIndex}
-                                small={image}
-                                large={image}
-                                alt={`${work.title} - صورة ${imgIndex + 1}`}
-                                className="rounded-lg object-cover h-48 w-full cursor-pointer"
-                                imageBackgroundColor="#fff"
-                              />
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: imgIndex * 0.1 }}
+                                whileHover={{ scale: 1.05 }}
+                                className="rounded-xl overflow-hidden shadow-md aspect-square"
+                              >
+                                <ModalImage
+                                  small={image}
+                                  large={image}
+                                  alt={`${work.title} - صورة ${imgIndex + 1}`}
+                                  className="w-full h-full object-cover cursor-pointer"
+                                  imageBackgroundColor="#fff"
+                                />
+                              </motion.div>
                             ))}
                           </div>
-                        </div>
+                        </motion.div>
                       )}
                       
-                      <div className="mb-4">
-                        <h4 className="font-semibold text-gray-700 mb-2">وصف العمل:</h4>
-                        <p className="text-gray-600 whitespace-pre-line">{work.description}</p>
-                      </div>
-                      
-                      <div className="flex flex-wrap justify-between items-center pt-4 border-t border-gray-200">
+                      <div className="flex flex-wrap justify-between items-center pt-4 border-t border-gray-200 mt-4">
                         <div className="flex items-center mb-2 md:mb-0">
-                          <span className="text-sm text-gray-500 mr-2">تاريخ الإنجاز:</span>
-                          <span className="text-sm font-medium">
-                            {work.createdAt && work.createdAt.toDate ? 
-                              work.createdAt.toDate().toLocaleDateString() : 
-                              'غير محدد'}
+                         <FaRegCalendarAlt className="text-cyan-600 ml-2 mr-2" />
+                         <span className="text-gray-600 text-sm">
+  {new Date(work.createdAt.seconds * 1000).toLocaleDateString('ar-EG', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })}
+</span>
+
+                        </div>
+                        <div className="flex items-center text-gray-500 text-sm">
+                          <span className="bg-cyan-100 text-cyan-700 px-3 py-1 rounded-full">
+                            {work.category}
                           </span>
                         </div>
-                        
-                        {work.ratings && work.ratings.length > 0 && (
-                          <div className="flex items-center">
-                            <span className="text-sm text-gray-500 mr-2">التقييم:</span>
-                            <div className="flex items-center">
-                              <FaStar className="text-yellow-500 mr-1" />
-                              <span className="font-medium">
-                                {(work.ratings.reduce((sum, r) => sum + r, 0) / work.ratings.length).toFixed(1)}
-                              </span>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </motion.div>
                 ))}
-              </div>
+              </motion.div>
             ) : (
-              <div className="text-center text-gray-500 py-8 bg-white rounded-xl shadow-lg">
-                لا توجد أعمال سابقة لعرضها
-              </div>
+              <motion.div
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                className="bg-white rounded-2xl shadow-md p-8 text-center"
+              >
+                <div className="text-cyan-500 text-5xl mb-4">
+                  <FaCalendarAlt className="mx-auto" />
+                </div>
+                <p className="text-xl font-semibold text-gray-600 mb-2">لا توجد أعمال سابقة حالياً</p>
+                <p className="text-gray-500">سيتم عرض الأعمال السابقة لمقدم الخدمة هنا.</p>
+              </motion.div>
             )}
           </motion.div>
         )}
@@ -587,81 +732,165 @@ const handleStartChat = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
           >
+            <motion.h2 
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              className="text-2xl font-bold text-cyan-800 mb-6 flex items-center"
+            >
+              <span className="bg-yellow-500 text-white p-2 rounded-lg ml-2 mr-2 text-sm">
+                <FaStar />
+              </span>
+              التقييمات والمراجعات
+            </motion.h2>
+            
+          
+            
+            <motion.div
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+            >
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-              <h2 className="text-2xl font-bold text-cyan-800 mb-4">أضف تقييمك</h2>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-cyan-800 mb-2">تقييمات العملاء</h2>
+          <div className="flex items-center">
+            {renderRatingStars(Math.round(calculateAverageRating()), 'lg')}
+            <span className="mx-3 text-2xl font-bold text-gray-800">
+              {calculateAverageRating()}
+            </span>
+            <span className="text-gray-500">
+              بناءً على {reviews.length} تقييم
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* توزيع التقييمات */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold text-cyan-700 mb-3">توزيع التقييمات</h3>
+        <div className="space-y-2">
+          {[5, 4, 3, 2, 1].map((stars) => {
+            const count = reviews.filter(r => r.rating === stars).length;
+            const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+            
+            return (
+              <div key={stars} className="flex items-center">
+                <div className="w-10">
+                  <span className="text-gray-600">{stars} نجوم</span>
+                </div>
+                <div className="flex-1 mx-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div 
+                      className="bg-yellow-500 h-2.5 rounded-full" 
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="w-10 text-right">
+                  <span className="text-gray-600">{count}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* قائمة التقييمات */}
+      <div className="space-y-6">
+        {reviews.length > 0 ? (
+          [...reviews]
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // ترتيب من الأحدث للأقدم
+            .map((review) => (
+              <div 
+                key={review.id} 
+                className="border-b border-gray-200 pb-6 last:border-0 last:pb-0"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-bold text-cyan-800">{review.clientName}</h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(review.createdAt).toLocaleDateString('ar-EG', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                  <div className="flex">
+                    {renderRatingStars(review.rating)}
+                  </div>
+                </div>
+                
+                {review.review && (
+                  <p className="text-gray-700 mt-3">{review.review}</p>
+                )}
+              </div>
+            ))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">لا توجد تقييمات حتى الآن</p>
+          </div>
+        )}
+      </div>
+    </div>
+            </motion.div>
+
+              <motion.div 
+              className="bg-white rounded-2xl shadow-lg p-6 mb-6"
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <h3 className="text-xl font-bold text-cyan-800 mb-4">أضف تقييمك</h3>
               
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2">تقييمك:</label>
-                <div className="flex space-x-2 mb-4">
-                  {renderRatingStars(
-                    hoverRating || rating, 
-                    (value) => setRating(value), 
-                    (value) => setHoverRating(value)
-                  )}
+                <label className="block text-gray-700 mb-2 font-medium">تقييمك</label>
+                <div className="flex items-center">
+                  {renderRatingStars(hoverRating || rating, setRating, setHoverRating, "lg")}
+                  <span className="mr-3 ml-2 text-lg text-gray-500">{hoverRating || rating || 0} </span>
                 </div>
               </div>
               
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">تعليقك:</label>
-                <textarea
+              <div className="mb-6">
+                <label className="block text-gray-700 mb-2 font-medium">رأيك في مقدم الخدمة</label>
+                <textarea 
+                  rows="4"
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
-                  placeholder="أخبرنا عن تجربتك مع مقدم الخدمة..."
-                  className="w-full border border-gray-300 rounded-lg p-3 h-32"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+                  placeholder="اكتب تقييمك هنا..."
                 />
               </div>
               
-              <button
+              <motion.button
                 onClick={handleSubmitReview}
-                disabled={!userData || rating === 0 || isSubmittingReview}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2 rounded-lg disabled:bg-gray-400"
+                disabled={isSubmittingReview}
+                className={`bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-6 py-3 rounded-xl shadow-md flex items-center justify-center transition-all ${
+                  isSubmittingReview ? 'opacity-70 cursor-not-allowed' : 'hover:from-cyan-600 hover:to-cyan-700'
+                }`}
+                variants={buttonVariants}
+                whileHover="hover"
+                whileTap="tap"
               >
-                {isSubmittingReview ? 'جاري الإرسال...' : 'إرسال التقييم'}
-              </button>
-              
-              {!userData && (
-                <p className="text-red-500 mt-2">
-                  يرجى تسجيل الدخول لإضافة تقييم
-                </p>
-              )}
-            </div>
-
-            <h2 className="text-2xl font-bold text-cyan-800 mb-4">التقييمات ({reviews.length})</h2>
-            
-            {reviews.length > 0 ? (
-              <div className="space-y-4">
-                {reviews.map((review, index) => (
-                  <motion.div
-                    key={review.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-white rounded-xl shadow-lg p-6"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-cyan-800">{review.clientName}</h3>
-                      <div className="flex">
-                        {renderRatingStars(review.rating)}
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-600 mb-2">{review.review}</p>
-                    
-                    <div className="text-sm text-gray-500">
-                      {review.createdAt && review.createdAt.toDate ? 
-                        review.createdAt.toDate().toLocaleDateString() : 
-                        'تاريخ غير محدد'}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center text-gray-500 py-8 bg-white rounded-xl shadow-lg">
-                لا توجد تقييمات لمقدم الخدمة
-              </div>
-            )}
+                {isSubmittingReview ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-t-white border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin ml-2"></div>
+                    جاري الإرسال...
+                  </>
+                ) : (
+                  <>
+                    <FaStar className="ml-2" />
+                    إرسال التقييم
+                  </>
+                )}
+              </motion.button>
+            </motion.div>
           </motion.div>
         )}
 
@@ -669,161 +898,252 @@ const handleStartChat = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white rounded-xl shadow-lg p-6"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
           >
-            <h2 className="text-2xl font-bold text-cyan-800 mb-4">معلومات مقدم الخدمة</h2>
+            <motion.h2 
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              className="text-2xl font-bold text-cyan-800 mb-6 flex items-center"
+            >
+              <span className="bg-blue-600 text-white p-2 rounded-lg ml-2 mr-2 text-sm">
+                <FaUserCircle />
+              </span>
+              عن مقدم الخدمة
+            </motion.h2>
             
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-bold text-cyan-700 mb-1">المهنة:</h3>
-                <p>{providerData.profession || providerData.category || 'غير محدد'}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-bold text-cyan-700 mb-1">المنطقة:</h3>
-                <p>{providerData.governorate || 'غير محدد'}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-bold text-cyan-700 mb-1">عدد الأعمال المنجزة:</h3>
-                <p>{providerData.worksCount || works.length || 0}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-bold text-cyan-700 mb-1">نبذة:</h3>
-                <p>{providerData.bio || 'لا توجد نبذة تعريفية'}</p>
-              </div>
-              
-              {providerData.services && providerData.services.length > 0 && (
+            <motion.div
+              className="bg-white rounded-2xl shadow-lg p-6"
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <h3 className="font-bold text-cyan-700 mb-1">الخدمات المقدمة:</h3>
-                  <ul className="list-disc list-inside">
-                    {providerData.services.map((service, idx) => (
-                      <li key={idx}>{service}</li>
-                    ))}
-                  </ul>
+                  <h3 className="text-xl font-bold text-cyan-800 mb-4">المعلومات الشخصية</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="flex">
+                      <div className="w-40 text-gray-500 font-medium">الاسم</div>
+                      <div className="flex-1 font-semibold">{providerData.name}</div>
+                    </div>
+                    
+                    <div className="flex">
+                      <div className="w-40 text-gray-500 font-medium">المهنة</div>
+                      <div className="flex-1 font-semibold">{providerData.profession || providerData.category}</div>
+                    </div>
+                    
+                    <div className="flex">
+                      <div className="w-40 text-gray-500 font-medium">المنطقة</div>
+                      <div className="flex-1 font-semibold">{providerData.governorate || 'غير محدد'}</div>
+                    </div>
+                    
+                    <div className="flex">
+                      <div className="w-40 text-gray-500 font-medium">العنوان</div>
+                      <div className="flex-1 font-semibold">{providerData.address || 'غير محدد'}</div>
+                    </div>
+                    
+                    <div className="flex">
+                      <div className="w-40 text-gray-500 font-medium">معدل التقييم</div>
+                      <div className="flex-1 font-semibold flex items-center">
+                        {renderRatingStars(Math.round(calculateAverageRating()))}
+                        <span className="mx-2">
+                          {calculateAverageRating()} ({reviews.length} تقييم)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
-              
-              {providerData.experience && (
+                
                 <div>
-                  <h3 className="font-bold text-cyan-700 mb-1">الخبرة:</h3>
-                  <p>{providerData.experience}</p>
+                  <h3 className="text-xl font-bold text-cyan-800 mb-4">نبذة شخصية</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    {providerData.bio || 'لا يوجد وصف متاح لمقدم الخدمة.'}
+                  </p>
+                  
+                  {providerData.skills && providerData.skills.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-lg font-bold text-gray-700 mb-3">المهارات</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {providerData.skills.map((skill, index) => (
+                          <span 
+                            key={index}
+                            className="bg-gradient-to-r from-blue-100 to-cyan-100 text-cyan-700 px-4 py-2 rounded-full text-sm font-medium"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {providerData.education && (
+                    <div className="mt-6">
+                      <h4 className="text-lg font-bold text-gray-700 mb-3">المؤهلات العلمية</h4>
+                      <p className="text-gray-600">{providerData.education}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </div>
 
-      {showBookingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      {/* Booking Modal */}
+      <AnimatePresence>
+        {showBookingModal && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl p-6 max-w-md w-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
           >
-            <h2 className="text-2xl font-bold text-cyan-800 mb-4">حجز موعد مع {providerData.name}</h2>
-            
-            <div className="mb-4">
-              <label className="block text-gray-700 mb-2">اختر التاريخ:</label>
-              <DatePicker
-                selected={selectedDate}
-                onChange={date => setSelectedDate(date)}
-                className="w-full border border-gray-300 rounded-lg p-3"
-                dateFormat="dd/MM/yyyy"
-                minDate={new Date()}
-                placeholderText="اختر تاريخ الحجز"
-              />
-            </div>
-            
-            {selectedDate && (
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">اختر الوقت:</label>
-                <select
-                  value={selectedTime}
-                  onChange={(e) => setSelectedTime(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-3"
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-cyan-800">حجز موعد</h2>
+                <button 
+                  onClick={() => setShowBookingModal(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
                 >
-                  <option value="">-- اختر الوقت --</option>
-                  {availableTimes.map((time, index) => (
-                    <option key={index} value={time}>{time}</option>
-                  ))}
-                </select>
+                  ×
+                </button>
               </div>
-            )}
-            
-            <div className="mb-4">
-              <label className="block text-gray-700 mb-2">ملاحظات (اختياري):</label>
-              <textarea
-                value={bookingNote}
-                onChange={(e) => setBookingNote(e.target.value)}
-                placeholder="أضف أي ملاحظات أو تفاصيل إضافية حول الحجز..."
-                className="w-full border border-gray-300 rounded-lg p-3 h-24"
-              />
-            </div>
-            
-            <div className="flex justify-between">
-              <button
-                onClick={() => setShowBookingModal(false)}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg"
-              >
-                إلغاء
-              </button>
               
-              <button
-                onClick={handleBooking}
-                disabled={!selectedDate || !selectedTime || isCheckingAvailability}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2 rounded-lg disabled:bg-gray-400"
-              >
-                {isCheckingAvailability ? 'جاري التحقق...' : 'تأكيد الحجز'}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {showResultModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl p-6 max-w-md w-full"
-          >
-            <div className="text-center">
-              {bookingResult.success ? (
-                <>
-                  <div className="flex justify-center mb-4">
-                    <FaCheckCircle className="text-green-500 text-5xl" />
+              <div className="mb-6">
+                <label className="block text-gray-700 mb-2 font-medium">اختر التاريخ</label>
+                <DatePicker
+                  selected={selectedDate}
+                  onChange={date => setSelectedDate(date)}
+                  minDate={new Date()}
+                  dateFormat="dd/MM/yyyy"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  placeholderText="اختر تاريخ الحجز"
+                  locale="ar"
+                />
+              </div>
+              
+              {selectedDate && (
+                <div className="mb-6">
+                  <label className="block text-gray-700 mb-2 font-medium">اختر الوقت</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {availableTimes.map((time) => (
+                      <motion.button
+                        key={time}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedTime(time)}
+                        className={`p-3 rounded-lg text-center transition-all ${
+                          selectedTime === time
+                            ? 'bg-cyan-500 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {time}
+                      </motion.button>
+                    ))}
                   </div>
-                  <h2 className="text-2xl font-bold text-green-600 mb-4">تم الحجز بنجاح!</h2>
-                </>
-              ) : (
-                <>
-                  <div className="flex justify-center mb-4">
-                    <FaTimesCircle className="text-red-500 text-5xl" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-red-600 mb-4">لم يتم الحجز</h2>
-                </>
+                </div>
               )}
               
-              <p className="mb-6 text-gray-700">{bookingResult.message}</p>
+              <div className="mb-6">
+                <label className="block text-gray-700 mb-2 font-medium">ملاحظات الحجز</label>
+                <textarea 
+                  rows="3"
+                  value={bookingNote}
+                  onChange={(e) => setBookingNote(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+                  placeholder="أضف أي ملاحظات إضافية هنا..."
+                />
+              </div>
               
-              <button
-                onClick={() => setShowResultModal(false)}
-                className={`px-6 py-2 rounded-lg ${
-                  bookingResult.success 
-                    ? 'bg-green-500 hover:bg-green-600 text-white'
-                    : 'bg-red-500 hover:bg-red-600 text-white'
+              <motion.button
+                onClick={handleBooking}
+                disabled={isCheckingAvailability}
+                className={`w-full bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-6 py-3 rounded-xl shadow-md flex items-center justify-center transition-all ${
+                  isCheckingAvailability ? 'opacity-70 cursor-not-allowed' : 'hover:from-cyan-600 hover:to-cyan-700'
                 }`}
+                variants={buttonVariants}
+                whileHover="hover"
+                whileTap="tap"
               >
-                حسناً
-              </button>
-            </div>
+                {isCheckingAvailability ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-t-white border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin ml-2"></div>
+                    جاري التحقق...
+                  </>
+                ) : (
+                  <>
+                    <FaCheckCircle className="ml-2" />
+                    تأكيد الحجز
+                  </>
+                )}
+              </motion.button>
+            </motion.div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
+
+      {/* Booking Result Modal */}
+      <AnimatePresence>
+        {showResultModal && bookingResult && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className={`bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center ${
+                bookingResult.success ? 'border-t-4 border-green-500' : 'border-t-4 border-red-500'
+              }`}
+            >
+              <div className={`text-5xl mb-6 ${
+                bookingResult.success ? 'text-green-500' : 'text-red-500'
+              }`}>
+                {bookingResult.success ? <FaCheckCircle /> : <FaTimesCircle />}
+              </div>
+              
+              <h2 className={`text-2xl font-bold mb-4 ${
+                bookingResult.success ? 'text-green-700' : 'text-red-700'
+              }`}>
+                {bookingResult.success ? 'تم الحجز بنجاح' : 'حدثت مشكلة'}
+              </h2>
+              
+              <p className="text-gray-600 mb-6">{bookingResult.message}</p>
+              
+              <motion.button
+                onClick={() => {
+                  setShowResultModal(false);
+                  if (bookingResult.success) {
+                    setShowBookingModal(false);
+                  }
+                }}
+                className={`px-6 py-3 rounded-xl shadow-md text-white ${
+                  bookingResult.success 
+                    ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' 
+                    : 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700'
+                }`}
+                variants={buttonVariants}
+                whileHover="hover"
+                whileTap="tap"
+              >
+                {bookingResult.success ? 'حسناً' : 'حاول مرة أخرى'}
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
