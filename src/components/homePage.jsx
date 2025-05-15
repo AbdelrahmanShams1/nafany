@@ -180,7 +180,7 @@ const ChatItem = ({ chat, userData, handleStartChat }) => {
       transition={{ duration: 0.3 }}
     >
       <div className="flex items-center">
-        <div className="bg-gradient-to-br from-cyan-400 to-cyan-600 text-white rounded-full p-2 ml-3">
+        <div className="bg-gradient-to-br from-cyan-400 to-cyan-600 text-white rounded-full p-2 mr-2 ml-3">
           <FaUserCircle className="text-xl" />
         </div>
         <div>

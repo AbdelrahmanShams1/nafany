@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, setDoc, query, where, getDocs, doc } from "firebase/firestore";
+import { FaUser, FaEnvelope, FaLock, FaPhone, FaMapMarkerAlt, FaArrowRight, FaArrowLeft, FaIdCard, FaBriefcase, FaBuilding, FaMoneyBillWave } from "react-icons/fa";
 
 const RegisterProvider = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const RegisterProvider = () => {
     worksCount: 0,
     averageRating: 0,
     totalRatings: 0,
-    role:"user",
+    role: "user",
     works: [],
     worksCount: 0,
   });
@@ -38,10 +39,10 @@ const RegisterProvider = () => {
   const [errors, setErrors] = useState({});
   const [emailExists, setEmailExists] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formStep, setFormStep] = useState(1);
 
   const governorates = [
     "وسط البلد", "الزمالك"
-   
   ];
 
   const serviceCategories = {
@@ -51,11 +52,10 @@ const RegisterProvider = () => {
     ],
     "خدمات صحية": [
       "طبيب عام", "صيدلي", "أخصائي تغذية",
-      "ممرض", "أخصائي علاج طبيعي","طبيب أسنان"
+      "ممرض", "أخصائي علاج طبيعي", "طبيب أسنان"
     ],
     "خدمات عامة": [
       "سوبر ماركت", "مطعم", "كافيه", "مولات",
-      
     ],
     "خدمات أخرى": [
       "عطار", "جزار", "فكهاني", "خضري",
@@ -75,28 +75,104 @@ const RegisterProvider = () => {
     }));
   }, []);
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        delayChildren: 0.3,
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 100 }
+    }
+  };
+
+  const buttonVariants = {
+    hover: { scale: 1.05, transition: { duration: 0.3 } },
+    tap: { scale: 0.95 }
+  };
+
+  const formCardVariants = {
+    hidden: { scale: 0.8, opacity: 0 },
+    visible: { 
+      scale: 1, 
+      opacity: 1,
+      transition: { 
+        type: "spring",
+        damping: 15,
+        stiffness: 100
+      }
+    },
+    exit: { 
+      scale: 0.8, 
+      opacity: 0,
+      transition: { duration: 0.3 }
+    }
+  };
+
   const validateForm = () => {
     let newErrors = {};
+    let isValid = true;
 
-    if (!formData.name.trim()) newErrors.name = "الاسم مطلوب";
-    if (!formData.email.trim()) {
-      newErrors.email = "البريد الإلكتروني مطلوب";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "البريد الإلكتروني غير صالح";
+    if (formStep === 1) {
+      if (!formData.name.trim()) {
+        newErrors.name = "الاسم مطلوب";
+        isValid = false;
+      }
+      
+      if (!formData.email.trim()) {
+        newErrors.email = "البريد الإلكتروني مطلوب";
+        isValid = false;
+      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = "البريد الإلكتروني غير صالح";
+        isValid = false;
+      }
+      
+      if (!formData.password.trim()) {
+        newErrors.password = "كلمة المرور مطلوبة";
+        isValid = false;
+      } else if (formData.password.length < 6) {
+        newErrors.password = "يجب أن تكون كلمة المرور 6 أحرف على الأقل";
+        isValid = false;
+      }
+    } else if (formStep === 2) {
+      if (!formData.nationalId.trim()) {
+        newErrors.nationalId = "الرقم القومي مطلوب";
+        isValid = false;
+      }
+      
+      if (!formData.phone.trim()) {
+        newErrors.phone = "رقم الهاتف مطلوب";
+        isValid = false;
+      }
+      
+      if (!formData.address.trim()) {
+        newErrors.address = "العنوان مطلوب";
+        isValid = false;
+      }
+    } else if (formStep === 3) {
+      if (!formData.idFrontImage) {
+        newErrors.idFrontImage = "صورة البطاقة الأمامية مطلوبة";
+        isValid = false;
+      }
+      
+      if (!formData.idBackImage) {
+        newErrors.idBackImage = "صورة البطاقة الخلفية مطلوبة";
+        isValid = false;
+      }
     }
-    if (!formData.password.trim()) {
-      newErrors.password = "كلمة المرور مطلوبة";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "يجب أن تكون كلمة المرور 6 أحرف على الأقل";
-    }
-    if (!formData.nationalId.trim()) newErrors.nationalId = "الرقم القومي مطلوب";
-    if (!formData.idFrontImage) newErrors.idFrontImage = "صورة البطاقة الأمامية مطلوبة";
-    if (!formData.idBackImage) newErrors.idBackImage = "صورة البطاقة الخلفية مطلوبة";
-    if (!formData.phone.trim()) newErrors.phone = "رقم الهاتف مطلوب";
-    if (!formData.address.trim()) newErrors.address = "العنوان مطلوب";
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return isValid;
   };
 
   const checkEmailExists = async (email) => {
@@ -141,12 +217,15 @@ const RegisterProvider = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     
-    if (!validateForm()) {
-      setIsSubmitting(false);
+    if (!validateForm()) return;
+    
+    if (formStep < 3) {
+      setFormStep(formStep + 1);
       return;
     }
+    
+    setIsSubmitting(true);
     
     try {
       const emailAlreadyExists = await checkEmailExists(formData.email);
@@ -190,9 +269,9 @@ const RegisterProvider = () => {
         averageRating: 0,
         totalRatings: 0,
         bookings: [],
-         reviews: [], // مصفوفة التقييمات
-  ratingsCount: 0, // عدد التقييمات
-  ratingsTotal: 0 // مجموع التقييمات
+        reviews: [],
+        ratingsCount: 0,
+        ratingsTotal: 0
       };
 
       if (formData.category === "خدمات فنية") {
@@ -200,9 +279,11 @@ const RegisterProvider = () => {
       }
   
       await setDoc(doc(db, "serviceProviders", formData.email), providerData);
-  
-      alert("تم التسجيل بنجاح");
-      navigate("/nafany/login");
+      
+      // Success animation before navigation
+      setTimeout(() => {
+        navigate("/nafany/login");
+      }, 1500);
     } catch (e) {
       console.error("حدث خطأ أثناء التسجيل: ", e);
       alert("حدث خطأ أثناء التسجيل، يرجى المحاولة مرة أخرى");
@@ -224,74 +305,343 @@ const RegisterProvider = () => {
     }
   };
 
-  const renderInputField = (key, index) => {
-    const labels = {
-      name: "الاسم",
-      email: "البريد الإلكتروني",
-      password: "كلمة المرور",
-      nationalId: "الرقم القومي",
-      phone: "رقم الهاتف",
-      address: "العنوان"
-    };
-
-    const types = {
-      password: "password",
-      email: "email",
-      nationalId: "number",
-      phone: "tel",
-      default: "text"
-    };
-
-    return (
-      <motion.div key={index} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: index * 0.2 }}>
-        <label className="block text-gray-700 font-medium text-sm mb-2">{labels[key]}</label>
-        <input
-          type={types[key] || types.default}
-          name={key}
-          placeholder={`أدخل ${labels[key]}`}
-          className={`w-full border ${errors[key] ? 'border-red-500' : 'border-gray-300'} rounded-lg p-3 focus:ring-2 focus:ring-cyan-500`}
-          required
-          value={formData[key]}
-          onChange={handleChange}
-        />
-        {errors[key] && <p className="text-red-500 text-sm mt-1">{errors[key]}</p>}
-        {key === "email" && emailExists && <p className="text-red-500 text-sm mt-1">البريد الإلكتروني مستخدم بالفعل</p>}
-      </motion.div>
-    );
-  };
-
-  return (
+  const renderFirstStep = () => (
     <motion.div
-      className="flex items-center justify-center min-h-screen bg-gradient-to-b from-cyan-100 to-blue-200 p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
+      variants={formCardVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="p-8 bg-gradient-to-br from-white to-cyan-50 rounded-xl shadow-xl text-right w-full max-w-lg border border-cyan-100 relative overflow-hidden"
+      dir="rtl"
     >
-      <motion.div
-        className="p-8 bg-white rounded-xl shadow-lg text-right w-full max-w-lg border border-cyan-100"
-        dir="rtl"
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+      {/* Decorative Elements */}
+      <div className="absolute -right-16 -top-16 w-32 h-32 bg-cyan-500 opacity-10 rounded-full"></div>
+      <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-blue-500 opacity-10 rounded-full"></div>
+      
+      <motion.div className="relative z-10" variants={containerVariants} initial="hidden" animate="visible">
+        <motion.div className="flex justify-center mb-6" variants={itemVariants}>
+          <div className="bg-cyan-600 text-white p-4 rounded-full shadow-md">
+            <FaUser size={24} />
+          </div>
+        </motion.div>
+        
         <motion.h2
           className="text-2xl font-bold text-center mb-8 text-cyan-800"
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          variants={itemVariants}
         >
-          تسجيل مقدم الخدمة
+          <span className="bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+            بيانات مقدم الخدمة الأساسية
+          </span>
         </motion.h2>
+        
+        <motion.div className="space-y-6" variants={containerVariants}>
+          <motion.div variants={itemVariants}>
+            <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <FaUser className="ml-2 text-cyan-600" />
+              الاسم
+            </label>
+            <input
+              type="text"
+              name="name"
+              placeholder="أدخل الاسم"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300"
+              required
+              value={formData.name}
+              onChange={handleChange}
+            />
+            {errors.name && (
+              <motion.p 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-500 text-sm mt-1"
+              >
+                {errors.name}
+              </motion.p>
+            )}
+          </motion.div>
+          
+          <motion.div variants={itemVariants}>
+            <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <FaEnvelope className="ml-2 text-cyan-600" />
+              عنوان البريد
+            </label>
+            <input
+              type="email"
+              name="email"
+              placeholder="أدخل عنوان البريد"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300"
+              required
+              value={formData.email}
+              onChange={handleChange}
+            />
+            {errors.email && (
+              <motion.p 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-500 text-sm mt-1"
+              >
+                {errors.email}
+              </motion.p>
+            )}
+            {emailExists && (
+              <motion.p 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-500 text-sm mt-1"
+              >
+                البريد الإلكتروني مستخدم بالفعل
+              </motion.p>
+            )}
+          </motion.div>
+          
+          <motion.div variants={itemVariants}>
+            <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <FaLock className="ml-2 text-cyan-600" />
+              كلمة المرور
+            </label>
+            <input
+              type="password"
+              name="password"
+              placeholder="أدخل كلمة المرور"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300"
+              required
+              value={formData.password}
+              onChange={handleChange}
+            />
+            {errors.password && (
+              <motion.p 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-500 text-sm mt-1"
+              >
+                {errors.password}
+              </motion.p>
+            )}
+          </motion.div>
+          
+          <motion.div className="pt-4 flex justify-between items-center" variants={itemVariants}>
+            <motion.button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="py-3 px-5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium shadow-md flex items-center justify-center transition-all duration-300"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+            >
+              <FaArrowRight className="ml-2" />
+              رجوع
+            </motion.button>
+            
+            <motion.button
+              type="button"
+              onClick={handleSubmit}
+              className="py-3 px-6 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg font-medium shadow-md flex items-center justify-center transition-all duration-300"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+            >
+              التالي
+              <FaArrowLeft className="mr-2" />
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
 
-        <motion.form onSubmit={handleSubmit} className="space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-          {["name", "email", "password", "nationalId", "phone", "address"].map((key, index) => 
-            renderInputField(key, index)
-          )}
-
-          <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
-            <label className="block text-gray-700 font-medium text-sm mb-2">التصنيف</label>
+  const renderSecondStep = () => (
+    <motion.div
+      variants={formCardVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="p-8 bg-gradient-to-br from-white to-cyan-50 rounded-xl shadow-xl text-right w-full max-w-lg border border-cyan-100 relative overflow-hidden"
+      dir="rtl"
+    >
+      {/* Decorative Elements */}
+      <div className="absolute -right-16 -top-16 w-32 h-32 bg-cyan-500 opacity-10 rounded-full"></div>
+      <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-blue-500 opacity-10 rounded-full"></div>
+      
+      <motion.div className="relative z-10" variants={containerVariants} initial="hidden" animate="visible">
+        <motion.div className="flex justify-center mb-6" variants={itemVariants}>
+          <div className="bg-cyan-600 text-white p-4 rounded-full shadow-md">
+            <FaBriefcase size={24} />
+          </div>
+        </motion.div>
+        
+        <motion.h2
+          className="text-2xl font-bold text-center mb-8 text-cyan-800"
+          variants={itemVariants}
+        >
+          <span className="bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+            بيانات الخدمة والاتصال
+          </span>
+        </motion.h2>
+        
+        <motion.div className="space-y-6" variants={containerVariants}>
+          <motion.div variants={itemVariants}>
+            <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <FaIdCard className="ml-2 text-cyan-600" />
+              الرقم القومي
+            </label>
+            <input
+              type="text"
+              name="nationalId"
+              placeholder="أدخل الرقم القومي"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300"
+              required
+              value={formData.nationalId}
+              onChange={handleChange}
+            />
+            {errors.nationalId && (
+              <motion.p 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-500 text-sm mt-1"
+              >
+                {errors.nationalId}
+              </motion.p>
+            )}
+          </motion.div>
+          
+          <motion.div variants={itemVariants}>
+            <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <FaPhone className="ml-2 text-cyan-600" />
+              رقم الهاتف
+            </label>
+            <input
+              type="text"
+              name="phone"
+              placeholder="أدخل رقم الهاتف"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300"
+              required
+              value={formData.phone}
+              onChange={handleChange}
+            />
+            {errors.phone && (
+              <motion.p 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-500 text-sm mt-1"
+              >
+                {errors.phone}
+              </motion.p>
+            )}
+          </motion.div>
+          
+          <motion.div variants={itemVariants}>
+            <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <FaMapMarkerAlt className="ml-2 text-cyan-600" />
+              العنوان
+            </label>
+            <input
+              type="text"
+              name="address"
+              placeholder="أدخل العنوان"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300"
+              required
+              value={formData.address}
+              onChange={handleChange}
+            />
+            {errors.address && (
+              <motion.p 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-500 text-sm mt-1"
+              >
+                {errors.address}
+              </motion.p>
+            )}
+          </motion.div>
+          
+          <motion.div variants={itemVariants}>
+            <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <FaMapMarkerAlt className="ml-2 text-cyan-600" />
+              المنطقة
+            </label>
             <select
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
+              name="governorate"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300"
+              required
+              value={formData.governorate}
+              onChange={(e) => setFormData({ ...formData, governorate: e.target.value })}
+            >
+              {governorates.map((option, i) => (
+                <option className={`${i < 3 && i !== 0 ? "text-red-600" : ""}`} key={i} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </motion.div>
+          
+          <motion.div className="pt-4 flex justify-between items-center" variants={itemVariants}>
+            <motion.button
+              type="button"
+              onClick={() => setFormStep(1)}
+              className="py-3 px-5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium shadow-md flex items-center justify-center transition-all duration-300"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+            >
+              <FaArrowRight className="ml-2" />
+              السابق
+            </motion.button>
+            
+            <motion.button
+              type="button"
+              onClick={handleSubmit}
+              className="py-3 px-6 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg font-medium shadow-md flex items-center justify-center transition-all duration-300"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+            >
+              التالي
+              <FaArrowLeft className="mr-2" />
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+
+  const renderThirdStep = () => (
+    <motion.div
+      variants={formCardVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="p-8 bg-gradient-to-br from-white to-cyan-50 rounded-xl shadow-xl text-right w-full max-w-lg border border-cyan-100 relative overflow-hidden"
+      dir="rtl"
+    >
+      {/* Decorative Elements */}
+      <div className="absolute -right-16 -top-16 w-32 h-32 bg-cyan-500 opacity-10 rounded-full"></div>
+      <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-blue-500 opacity-10 rounded-full"></div>
+      
+      <motion.div className="relative z-10" variants={containerVariants} initial="hidden" animate="visible">
+        <motion.div className="flex justify-center mb-6" variants={itemVariants}>
+          <div className="bg-cyan-600 text-white p-4 rounded-full shadow-md">
+            <FaBuilding size={24} />
+          </div>
+        </motion.div>
+        
+        <motion.h2
+          className="text-2xl font-bold text-center mb-8 text-cyan-800"
+          variants={itemVariants}
+        >
+          <span className="bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+            إكمال بيانات التسجيل
+          </span>
+        </motion.h2>
+        
+        <motion.div className="space-y-6" variants={containerVariants}>
+          <motion.div variants={itemVariants}>
+            <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <FaBriefcase className="ml-2 text-cyan-600" />
+              التصنيف
+            </label>
+            <select
+              name="category"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300"
               required
               value={formData.category}
               onChange={handleCategoryChange}
@@ -301,164 +651,307 @@ const RegisterProvider = () => {
               ))}
             </select>
           </motion.div>
-
-          <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
-            <label className="block text-gray-700 font-medium text-sm mb-2">المهنة/الخدمة</label>
+          
+          <motion.div variants={itemVariants}>
+            <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <FaBriefcase className="ml-2 text-cyan-600" />
+              المهنة/الخدمة
+            </label>
             <select
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
+              name="profession"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300"
               required
               value={formData.profession}
-              onChange={(e) => setFormData(prev => ({ ...prev, profession: e.target.value }))}
+              onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
             >
               {serviceCategories[formData.category]?.map((profession, i) => (
                 <option key={i} value={profession}>{profession}</option>
               ))}
             </select>
           </motion.div>
-
-          {formData.category === "خدمات فنية" && (
-            <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={formData.allowContact}
-                  onChange={(e) => setFormData(prev => ({ ...prev, allowContact: e.target.checked }))}
-                  className="rounded text-cyan-600 focus:ring-cyan-500"
-                />
-                <span className="text-gray-700">السماح بالتواصل المباشر بين الفني والعميل</span>
-              </label>
-            </motion.div>
-          )}
-
-          <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
-            <label className="block text-gray-700 font-medium text-sm mb-2">المحافظة</label>
+          
+          <motion.div variants={itemVariants}>
+            <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <FaMoneyBillWave className="ml-2 text-cyan-600" />
+              رسوم الاشتراك
+            </label>
             <select
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
-              required
-              value={formData.governorate}
-              onChange={(e) => setFormData(prev => ({ ...prev, governorate: e.target.value }))}
-            >
-              {governorates.map((gov, i) => (
-                <option className={`${i < 3 && i != 0 ? "text-red-600" : ""}`} key={i} value={gov}>{gov}</option>
-              ))}
-            </select>
-          </motion.div>
-
-          <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.6 }}>
-            <label className="block text-gray-700 font-medium text-sm mb-2">رسوم الاشتراك</label>
-            <select
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500"
+              name="subscriptionFee"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300"
               required
               value={formData.subscriptionFee}
-              onChange={(e) => setFormData(prev => ({ ...prev, subscriptionFee: e.target.value }))}
+              onChange={(e) => setFormData({ ...formData, subscriptionFee: e.target.value })}
             >
               {subscriptionFees.map((fee, i) => (
                 <option key={i} value={fee}>{fee}</option>
               ))}
             </select>
           </motion.div>
-
-          <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-            <label className="block text-gray-700 font-medium text-sm">صور البطاقة</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { field: "idFrontImage", label: "صورة البطاقة من الأمام", preview: previewFrontImage, error: errors.idFrontImage },
-                { field: "idBackImage", label: "صورة البطاقة من الخلف", preview: previewBackImage, error: errors.idBackImage },
-              ].map((item, index) => (
-                <motion.div key={index} className="space-y-2" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: index * 0.3 }}>
-                  <div className={`bg-gray-50 border-2 border-dashed ${item.error ? 'border-red-500' : 'border-gray-300'} rounded-lg p-4 text-center hover:border-cyan-400 transition-colors`}>
-                    <input
-                      type="file"
-                      className="hidden"
-                      id={`id-image-${index}`}
-                      required
-                      onChange={(e) => handleImageUpload(e.target.files[0], item.field)}
-                      accept="image/*"
-                    />
-                    <label htmlFor={`id-image-${index}`} className="cursor-pointer">
-                      <div className="text-gray-500 flex flex-col items-center">
-                        {item.preview ? (
-                          <img src={item.preview} alt={item.label} className="h-20 w-20 object-cover rounded-lg mb-2" />
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            <span className="text-sm font-medium">{item.label}</span>
-                            <span className="text-xs mt-1">اضغط للاختيار</span>
-                          </>
-                        )}
-                      </div>
-                    </label>
-                  </div>
-                  {item.error && <p className="text-red-500 text-sm">{item.error}</p>}
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-            <label className="block text-gray-700 font-medium text-sm">الصورة الشخصية</label>
-            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-cyan-400 transition-colors">
-              <input
-                type="file"
-                className="hidden"
-                id="profile-image"
-                onChange={(e) => handleImageUpload(e.target.files[0], "profileImage")}
-                accept="image/*"
-              />
-              <label htmlFor="profile-image" className="cursor-pointer">
-                <div className="text-gray-500 flex flex-col items-center">
-                  {previewProfileImage ? (
-                    <img src={previewProfileImage} alt="الصورة الشخصية" className="h-20 w-20 object-cover rounded-full mb-2" />
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      <span className="text-sm font-medium">صورة شخصية</span>
-                      <span className="text-xs mt-1">اضغط للاختيار</span>
-                    </>
-                  )}
-                </div>
+          
+          {formData.category === "خدمات فنية" && (
+            <motion.div variants={itemVariants} className="bg-cyan-50 p-3 rounded-lg">
+              <label className="flex items-center space-x-2 space-x-reverse">
+                <input
+                  type="checkbox"
+                  checked={formData.allowContact}
+                  onChange={(e) => setFormData({ ...formData, allowContact: e.target.checked })}
+                  className="rounded text-cyan-600 focus:ring-cyan-500"
+                />
+                <span className="text-gray-700 mr-2">السماح بالتواصل المباشر بين الفني والعميل</span>
               </label>
-            </div>
-          </motion.div>
-
-          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.9 }}>
-            <label className="block text-gray-700 font-medium text-sm mb-2">تعريف شخصي</label>
+            </motion.div>
+          )}
+          
+          <motion.div variants={itemVariants}>
+            <label className="block text-gray-700 font-medium mb-2">تعريف شخصي</label>
             <textarea
+              name="bio"
               placeholder="أدخل تعريفاً شخصياً مختصراً عنك وخبراتك"
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 h-24"
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300 h-24"
               value={formData.bio}
-              onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
             />
           </motion.div>
-
-          <motion.div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <motion.div variants={itemVariants} className="space-y-4">
+           <label className="block text-gray-700 font-medium mb-2">الصور</label>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-gray-700 text-sm font-medium mb-2">صورة شخصية (اختيارية)</label>
+                <div className="mt-1 flex items-center justify-center border-2 border-dashed border-gray-300 p-6 rounded-lg hover:border-cyan-500 transition-colors duration-300">
+                  {previewProfileImage ? (
+                    <div className="relative w-full">
+                      <img src={previewProfileImage} alt="Profile Preview" className="rounded-lg h-32 mx-auto" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewProfileImage(null);
+                          setFormData({ ...formData, profileImage: null });
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer">
+                      <div className="flex flex-col items-center justify-center">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <p className="text-xs text-gray-500">اضغط لتحميل صورة</p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e.target.files[0], "profileImage")}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">صورة البطاقة (الأمامية) *</label>
+                <div className="mt-1 flex items-center justify-center border-2 border-dashed border-gray-300 p-6 rounded-lg hover:border-cyan-500 transition-colors duration-300">
+                  {previewFrontImage ? (
+                    <div className="relative w-full">
+                      <img src={previewFrontImage} alt="ID Front Preview" className="rounded-lg h-32 mx-auto" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewFrontImage(null);
+                          setFormData({ ...formData, idFrontImage: null });
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer">
+                      <div className="flex flex-col items-center justify-center">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <p className="text-xs text-gray-500">اضغط لتحميل صورة</p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e.target.files[0], "idFrontImage")}
+                      />
+                    </label>
+                  )}
+                </div>
+                {errors.idFrontImage && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-500 text-sm mt-1"
+                  >
+                    {errors.idFrontImage}
+                  </motion.p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">صورة البطاقة (الخلفية) *</label>
+                <div className="mt-1 flex items-center justify-center border-2 border-dashed border-gray-300 p-6 rounded-lg hover:border-cyan-500 transition-colors duration-300">
+                  {previewBackImage ? (
+                    <div className="relative w-full">
+                      <img src={previewBackImage} alt="ID Back Preview" className="rounded-lg h-32 mx-auto" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewBackImage(null);
+                          setFormData({ ...formData, idBackImage: null });
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer">
+                      <div className="flex flex-col items-center justify-center">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <p className="text-xs text-gray-500">اضغط لتحميل صورة</p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e.target.files[0], "idBackImage")}
+                      />
+                    </label>
+                  )}
+                </div>
+                {errors.idBackImage && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-500 text-sm mt-1"
+                  >
+                    {errors.idBackImage}
+                  </motion.p>
+                )}
+              </div>
+            </div>
+          </motion.div>
+          
+          <motion.div className="pt-6 flex justify-between items-center" variants={itemVariants}>
             <motion.button
               type="button"
-              onClick={() => navigate(-1)}
-              className="py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium shadow-md flex items-center justify-center"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
+              onClick={() => setFormStep(2)}
+              className="py-3 px-5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium shadow-md flex items-center justify-center transition-all duration-300"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
             >
-              رجوع
+              <FaArrowRight className="ml-2" />
+              السابق
             </motion.button>
+            
             <motion.button
               type="submit"
-              className={`py-3 ${isSubmitting ? 'bg-cyan-400' : 'bg-cyan-600 hover:bg-cyan-700'} text-white rounded-lg font-medium shadow-md flex items-center justify-center`}
-              whileHover={{ scale: isSubmitting ? 1 : 1.03 }}
-              whileTap={{ scale: isSubmitting ? 1 : 0.97 }}
               disabled={isSubmitting}
+              className={`py-3 px-6 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg font-medium shadow-md flex items-center justify-center transition-all duration-300 ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}`}
+              variants={buttonVariants}
+              whileHover={!isSubmitting && "hover"}
+              whileTap={!isSubmitting && "tap"}
             >
-              {isSubmitting ? 'جاري التسجيل...' : 'تسجيل'}
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  جاري التسجيل...
+                </span>
+              ) : (
+                <>
+                  تسجيل
+                  <FaArrowLeft className="mr-2" />
+                </>
+              )}
             </motion.button>
           </motion.div>
-        </motion.form>
+        </motion.div>
       </motion.div>
     </motion.div>
+  );
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-50 to-blue-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-lg">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-extrabold text-cyan-800 mb-4">
+            <span className="bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent inline-block">
+              إنضم إلينا كمقدم خدمة
+            </span>
+          </h1>
+          <p className="text-gray-600 text-lg">
+            قم بإكمال المعلومات التالية للانضمام إلى منصتنا
+          </p>
+        </div>
+        
+        <div className="mb-10">
+          <div className="flex items-center justify-between relative">
+            <div className="w-full absolute top-1/2 transform -translate-y-1/2">
+              <div className="h-1 bg-gray-200 rounded-full">
+                <div
+                  className="h-1 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-full transition-all duration-500"
+                  style={{ width: `${((formStep - 1) / 2) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+            
+            {[1, 2, 3].map((step) => (
+              <div
+                key={step}
+                className={`relative z-10 flex items-center justify-center rounded-full transition-all duration-500 ${
+                  step <= formStep
+                    ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white"
+                    : "bg-white text-gray-400 border border-gray-300"
+                } ${step < formStep ? "cursor-pointer" : ""}`}
+                style={{ width: "40px", height: "40px" }}
+                onClick={() => step < formStep && setFormStep(step)}
+              >
+                {step}
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex justify-between text-sm text-gray-600 mt-2 px-2">
+            <div className="text-center">
+              <span className={formStep >= 1 ? "text-cyan-700 font-medium" : ""}>البيانات الأساسية</span>
+            </div>
+            <div className="text-center">
+              <span className={formStep >= 2 ? "text-cyan-700 font-medium" : ""}>بيانات الاتصال</span>
+            </div>
+            <div className="text-center">
+              <span className={formStep >= 3 ? "text-cyan-700 font-medium" : ""}>إكمال التسجيل</span>
+            </div>
+          </div>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          <AnimatePresence mode="wait">
+            {formStep === 1 && renderFirstStep()}
+            {formStep === 2 && renderSecondStep()}
+            {formStep === 3 && renderThirdStep()}
+          </AnimatePresence>
+        </form>
+      </div>
+    </div>
   );
 };
 
 export default RegisterProvider;
+              
